@@ -1,0 +1,477 @@
+########################################################################################################################
+#################     Scenario: verify casual shirt sizes are displayed      ###########################################
+########################################################################################################################
+Given /^I am on the product item detail page for casual shirt "(.*?)"$/ do |product_item_code|
+  # Use the product search facility at the top of the page to load the detail page for the specified casual shirt (provided in the scenario data table)
+  @detailPage = @page.search_for_casual_shirt(product_item_code)
+  @detailPage.wait_until_element_present(@detailPage.main_controls_section)
+end
+
+When /^I select Size$/ do
+  # wait until the Size selection box is loaded then open it
+  @detailPage.wait_until_element_present(@detailPage.shirt_size_select_box)
+  @detailPage.open_shirt_size_select_box
+end
+
+Then /^several options are available for Size$/ do
+  # Find the contents of the 'Size' selection box.
+  @casual_shirt_sizes = @detailPage.find_all_shirt_sizes
+  puts "\nINFO: Shirt sizes displayed: #{@casual_shirt_sizes}"
+end
+
+########################################################################################################################
+#################     Scenario: verify casual shirt sizes can be selected      #########################################
+########################################################################################################################
+And /^select each one of the options in turn terminating with "(.*?)"$/ do |final_option|
+  # wait until the shirt 'Size' links on this page load. Then select each link in turn to verify they can be selected.
+  # Note that unavailable sizes (where the link text is an empty string) are skipped
+  SOLD_OUT = "sold out"
+  ON_ORDER = "on order"
+  STOCK_DUE = "stock due"
+  DEFAULT_SIZES = ["S","M","L","XL","XXL"]
+  shirt_sizes = @detailPage.find_all_shirt_sizes
+
+  shirt_sizes.each do |size_selection|
+    if size_selection.downcase.include? SOLD_OUT
+      # Size is Sold out
+      puts "\nINFO: Size \'#{size_selection}\' is sold out"
+      shirt_sizes.delete(size_selection)
+    end
+
+    result = @detailPage.set_shirt_size_value(size_selection)
+    fail "ERROR: Cannot select \'Size value\' #{size_selection}" if !result
+
+    # Verify that the selection box contains the value selected
+    select_box_value = @detailPage.shirt_size_select_box_value
+    fail "ERROR: Cannot select \'Size value\' #{size_selection}. Box still contains #{select_box_value}" if select_box_value != size_selection
+    puts "\nINFO: Selected size \'#{select_box_value}\'"
+    @detailPage.open_shirt_size_select_box
+  end
+
+  # Filter out any other text apart from the actual size itself (eg. 'XXL Order now, stock due 03/08/2013' becomes 'XXL')
+  # We need this done for comparing final_size with this actual size (eg. 'XXL' and not 'XXL Order now, stock due 03/08/2013')
+  actual_shirt_size =[]
+  shirt_sizes.each do |size|
+    tmp = size[/([A-Z]+).*/,1]
+    actual_shirt_size.push(tmp)
+  end
+
+  # finally select the 'Size' (link) specified in the scenario data table.
+  @final_option_unavailable = FALSE
+  if shirt_sizes.empty?
+    # All sizes are sold out (as all of the sizes have been deleted from the shirt_sizes array). So fail this test as it's no longer a valid test with this data.
+    fail "\nINFO: Cannot select any shirt sizes, as NONE are available to buy. Please use different shirt item in the scenario data table"
+  elsif !actual_shirt_size.include? final_option
+    # if the final option specified in the scenario is unavailable, then select the first available size (from the selection box)
+    @final_option_unavailable = TRUE
+    @first_option = shirt_sizes.first
+    puts "\nINFO: Cannot select \'#{final_option}\' as final size, so selecting #{@first_option} instead"
+    @detailPage.set_shirt_size_value(@first_option)
+  else
+    @detailPage.set_shirt_size_value(final_option)
+  end
+
+end
+
+And /^I Add To Basket$/ do
+  # Add the shirt to the basket
+  @detailPage.add_to_basket
+end
+
+And /^I navigate to the Checkout$/ do
+  @country = GB if @country == nil            # set GB as default country (if country is not already set elsewhere)
+  @basketPage = @detailPage.visit_checkout(@country)
+  @basketPage.wait_until_element_present(@basketPage.first_product_item_fieldset)
+  @basketPage.url.should == BASKET_LINK_URL
+end
+
+Then /^the final option "(.*?)" is displayed in the item summary for "(.*?)"$/ do |final_option, target_item_code|
+  target_item_id = ""
+  all_data_item_ids = []
+  #######################################################################################################################################################
+  # iterate through fieldset block that is the root of the structure containing the item information,to so we may find the 'data-item-id' for each item 
+  #######################################################################################################################################################
+  @basketPage.wait_until_element_present(@basketPage.first_product_item_fieldset)
+  @basketPage.product_item_fieldsets.each do |item|
+    # get item code from image link
+    item_codes_from_url = item.link(:class => "img", :href => /.*/).href.split "|"
+    item_product_code = item_codes_from_url[INDEX_FOR_STOCK_CODE]
+
+    # get data-item-id (that is used as a key to locate each item in the basket)
+    id_attribute = item.attribute_value("id")
+    data_item_id = id_attribute.sub(FIELDSET_PRODUCT_ITEM_SUFFIX,'')
+
+	  # store data-item-id in an array (that we can use later to retrieve information relating to each item)
+	  all_data_item_ids.push(data_item_id)
+
+    # locate the target item for which the description is needed, by using its item code
+	  target_item_id = data_item_id if (item_product_code == target_item_code)
+  end
+
+  #######################################################################################################################################################
+  # iterate through basket items using the data-item-id (which uniquely identify each item in the basket) to find item code and item description.
+  # Do this in reverse order so that the last item added is selected first. This is a precaution against picking up an item with the same item code
+  # that was previously added to the basket (ie. in another scenario or another iteration of this scenario)
+  #######################################################################################################################################################
+
+  # Note that the final option specified in the scenario is unavailable, so this is why the FIRST_AVAILABLE_SIZE size available (from the selection box) was selected instead
+  final_option = @first_option if @final_option_unavailable
+
+  all_data_item_ids.reverse.each do |item_id|
+    # get item code
+    item_codes_from_url = @basketPage.item_image_link(item_id).href.split "|"
+    item_product_code = item_codes_from_url[INDEX_FOR_STOCK_CODE]
+
+    # get item description
+    item_size = @basketPage.product_item_description(item_id).text
+    puts "\nINFO: item-id = #{item_id} : item_product_code = #{item_product_code} : size = #{item_size}" if ENABLED_LOGGING
+
+    # item 'Size' (which is the only info that is stored in the item description) should match the value in scenario data table
+    if item_id == target_item_id && item_size != final_option
+      fail "ERROR: Item \'#{item_product_code}\' (with item-id \'#{item_id}\') has an incorrect size of \'#{item_size}\'"
+      item_size.should == final_option
+      break
+    end
+  end
+end
+
+########################################################################################################################
+###################     Scenario: verify formal/evening shirt sizing options are displayed      ########################
+########################################################################################################################
+And /^I am on the product item detail page for a "(.*?)" with item code "(.*?)"$/ do |product_type, product_item_code|
+  # Load the formal shirt product page and select a Collar Size in order to display the first page of shirts
+  @slv_table_values = {}
+
+  # Use the product search facility at the top of the page to load the detail page for the specified formal shirt (provided in the scenario data table)
+  @detailPage = @page.search_for_formal_shirt(product_item_code)
+  @detailPage.wait_until_element_present(@detailPage.main_controls_section)
+end
+
+When /^I select "(\w+\s\w+)"$/ do |size_option_1|
+  # wait until the selection box is loaded then open it
+  if size_option_1.downcase == "collar size"
+    @detailPage.open_collar_size_select_box
+  elsif size_option_1.downcase == "sleeve length"
+    @detailPage.open_sleeve_length_select_box
+    ###############################################################################################################################################
+    # Create hash @slv_table_values where the 'key' is the actual length in inches, and 'val' is the code needed to select the
+    # link within the 'div' table. The reason
+    ###############################################################################################################################################
+    @slv_table_values = @detailPage.get_all_sleeve_lengths
+  else
+    puts "\nERROR: Invalid measurement option. Please use \'collar size\' or \'sleeve length\' instead"
+  end
+end
+
+Then /^several options are available for "(.*?)"$/ do |size_option|
+  # Find the contents of the 'Size' selection box (these are actually links under a 'div' with an 'id' of "shoe_size"!)
+  if size_option.downcase == "collar size"
+    @detailPage.all_collar_size_links.each do |link|
+	    col_value = link.text
+      puts "\nINFO: Collar size available includes #{col_value}"
+    end
+  elsif size_option.downcase == "sleeve length"
+    # @slv_table_values hash contains all sleeve lengths (from last step)
+    puts "\nINFO: Sleeve length available: #{@slv_table_values}"
+  end
+end
+
+
+########################################################################################################################
+###################  Scenario:  verify formal/evening shirt sizing options can be selected and the final values   ######
+###################                before adding to basket are the values that are saved                          ######
+########################################################################################################################
+And /^choose the option "(.*?)" from "(.*?)"$/ do |size_option_value, size_option|
+  if size_option.downcase == "collar size"
+    value_is_set = @detailPage.set_collar_size_value(size_option_value)
+    fail "\nERROR: Collar size value '#{size_option_value}' provided in scenario data table cannot be found for this shirt. Please provide a valid collar size" if value_is_set == FALSE
+  elsif size_option.downcase == "sleeve length"
+    @custom_sleeve = FALSE # default value
+    size_option_code = @slv_table_values[size_option_value]
+    # Determine if the sleeve length selected is a custom sleeve length. Note that the sleeve length selection box must be open first.
+    @detailPage.open_sleeve_length_select_box
+    @custom_sleeve = TRUE if @detailPage.is_a_custom_sleeve_length(size_option_code)
+    value_is_set = @detailPage.set_sleeve_length_value(size_option_code)
+    fail "\nERROR: Sleeve length value '#{size_option_value}' provided in scenario data table cannot be found. Please provide a valid sleeve length" if value_is_set == FALSE
+  end
+end
+
+And /^select each one of the options for "(.*?)" in turn terminating with "(.*?)"$/ do |size_option_2, final_option|
+  ################################################################################################################################
+  # wait until the shirt 'Sleeve length' links on this page load. Then select each link in turn to verify they can be selected.
+  ################################################################################################################################
+  out_of_stock = FALSE
+  @slv_table_values.each do |size_option, size_option_code|
+    value_is_set = @detailPage.set_sleeve_length_value(size_option_code)
+    fail "\nERROR: Sleeve length value #{size_option} cannot be set for this shirt" if value_is_set == FALSE
+
+    # verify the value of sleeve length in the select box matches the value selected. Note they will not match if size is out of stock.
+    select_box_value = @detailPage.sleeve_length_select_box_contents
+    fail "ERROR: Cannot find the element that contains the \'sleeve length\' select box value" if select_box_value == CONTENTS_NOT_FOUND
+    out_of_stock = TRUE if (select_box_value.downcase.include? "sold out") || (select_box_value.downcase.include? "order now") || (select_box_value.downcase.include? "stock due")
+
+    if select_box_value != @slv_table_values.key(size_option_code) && !out_of_stock
+      puts "\nERROR: The current value of sleeve length in the select box \'#{select_box_value}\' does not match the value selected \'#{@slv_table_values.key(size_option_code)}\'"
+      select_box_value.should == @slv_table_values.key(size_option_code)  # r-spec failure point
+    end
+    puts "\nINFO: Sleeve length value \'#{select_box_value}\' selected successfully for product item"
+	
+	  # open selection box to allow its current value to be changed
+    @detailPage.open_sleeve_length_select_box
+  end
+
+  #######################################################################################################################################################
+  # Determine if the sleeve length selected is a custom sleeve length. Note in to to do this the sleeve length selection box MUST be open first.
+  #######################################################################################################################################################
+  final_option_code = @slv_table_values[final_option]
+  @custom_sleeve = TRUE if @detailPage.is_a_custom_sleeve_length(final_option_code)
+
+  ################################################################################################################################
+  # Select the FINAL 'Sleeve length' (link) specified in the scenario data table.
+  ################################################################################################################################
+  fail "\nERROR: Sleeve length value provided in scenario data table cannot be found. Please provide a valid sleeve length" if !@slv_table_values.include? final_option
+  @detailPage.set_sleeve_length_value(final_option_code)
+  puts "\nINFO: Sleeve length value #{final_option} is the final selection successfully for this product item"
+end
+
+Then /^the option "(.*?)" and the final option "(.*?)" are displayed in the item summary for "(.*?)"$/ do |size_option_1_value, final_option, target_item_code|
+  target_item_id = ""
+  all_data_item_ids = []
+
+  #######################################################################################################################################################
+  # iterate through fieldset block that is the root of the structure containing the item information,to so we may find the 'data-item-id' for each item 
+  #######################################################################################################################################################
+  @basketPage.wait_until_element_present(@basketPage.first_product_item_fieldset)
+  @basketPage.product_item_fieldsets.each do |item|
+    # get item code from image link
+    item_codes_from_url = item.link(:class => "img", :href => /.*/).href.split "|"
+    item_product_code = item_codes_from_url[INDEX_FOR_STOCK_CODE]
+
+    # get data-item-id (that is used as a key to locate each item in the basket)
+    id_attribute = item.attribute_value("id")
+    data_item_id = id_attribute.sub(FIELDSET_PRODUCT_ITEM_SUFFIX,'')
+
+	  # store data-item-id in an array (that we can use later to retrieve information relating to each item)
+	  all_data_item_ids.push(data_item_id)
+
+    # locate the target item for which the description is needed, by using its item code
+	  target_item_id = data_item_id if (item_product_code == target_item_code)
+  end
+
+  #######################################################################################################################################################
+  # Iterate through basket items using the data-item-id (which uniquely identify each item in the basket) to find item code and item description.
+  # Do this in reverse order so that the last item added is selected first. This is a precaution against picking up an item with the same item code
+  # that was previously added to the basket (ie. in another scenario or another dataset from this scenario)
+  #######################################################################################################################################################
+  all_data_item_ids.reverse.each do |item_id|
+    # get item code
+    item_codes_from_url = @basketPage.item_image_link(item_id).href.split "|"
+    item_product_code = item_codes_from_url[INDEX_FOR_STOCK_CODE]
+
+    # get item description
+    item_description = @basketPage.product_item_description(item_id).text
+    puts "\nINFO: Description for product item \'#{item_product_code}\' added to basket is #{item_description}"
+
+	  ####################################################################################################################
+    # Find the collar size and sleeve length within the item description in the basket.
+	  # Note custom sleeve length extends the item description on to a newline so it requires a different match expression.
+	  ####################################################################################################################
+    if item_id == target_item_id
+	    if @custom_sleeve == TRUE
+	      match_result = item_description.match /(.*)collar(.*)sleeve(.*)\n(.*)sleeve(.*)/
+	      sleeve_in_desc = match_result[5].gsub(",","").sub('"','').strip
+	    else
+	      match_result = item_description.match /(.*)collar(.*)sleeve/
+	      sleeve_in_desc = match_result[2].gsub(",","").sub('"','').strip
+      end
+      collar_in_desc = match_result[1].sub('"','').strip
+	
+	####################################################################################################################
+    # Collar size and sleeve length should match the values in scenario data table
+	####################################################################################################################
+      if collar_in_desc != size_option_1_value
+        puts "\nERROR: Item \'#{item_product_code}\' with item-id \'#{item_id}\' has incorrect collar size of \'#{collar_in_desc}\'"
+        collar_in_desc.should == size_option_1_value  # r-spec failure point
+      elsif sleeve_in_desc != final_option
+        puts "\nERROR: Item \'#{item_product_code}\' with item-id \'#{item_id}\' has incorrect sleeve length of \'#{sleeve_in_desc}\'"
+        sleeve_in_desc.should == final_option  # r-spec failure point
+      end
+    end
+  end
+end
+
+
+########################################################################################################################
+########################################################################################################################
+###############################     Scenario: customisation on formal shirts      ######################################
+########################################################################################################################
+########################################################################################################################
+When /^I select the options "(.*?)", "(.*?)" and "(.*?)"$/ do |customisation_option_1, customisation_option_2, customisation_option_3|
+  # constants used for validating the scenario table data (input) to this test
+  SINGLE_CUFF = "single cuff"
+  DOUBLE_CUFF = "double cuff"
+  ADD_POCKET =  "add pocket"
+  ADD_MONOGRAM = "add monogram"
+
+  # constants used for validating the results of this test
+  CUSTOM_SLEEVE_RESULT = "shorten sleeve"
+  ADDED_MONOGRAM_RESULT = "monogram"
+  ADDED_POCKET_RESULT = "added pocket"
+  CUSTOM_SLEEVE_AMOUNT = "8.95"
+  MONOGRAM_AMOUNT = "7.95"
+  POCKET_AMOUNT = "6.95"
+  INITIALS = "XBM"
+
+  # default value for options
+  @single_cuff = FALSE
+  @double_cuff = TRUE
+  @add_pocket = FALSE
+  @add_monogram = FALSE
+
+  @customisation_option = [customisation_option_1, customisation_option_2, customisation_option_3]
+  @customisation_option.each do |option|
+    if option.downcase == SINGLE_CUFF
+      @single_cuff = TRUE; @double_cuff = FALSE
+      @detailPage.single_cuff_radio_button.set
+    end
+    if option.downcase == DOUBLE_CUFF
+      @double_cuff = TRUE
+      @detailPage.double_cuff_radio_button.set
+    end
+    if option.downcase == ADD_POCKET
+      @add_pocket = TRUE
+      @detailPage.add_pocket_checkbox.set
+      sleep 3
+      @detailPage.add_pocket_checkbox_value.should == "checked"
+    end
+    if option.downcase == ADD_MONOGRAM
+      @add_monogram = TRUE
+      @detailPage.add_monogram_checkbox.set
+      @detailPage.wait_until_element_present(@detailPage.monogram_lightbox)
+      @detailPage.select_roman_block_font
+      @detailPage.select_colour_navy
+      @detailPage.initials_text_box.set(INITIALS)
+      @detailPage.select_position_cuff_centre
+      @detailPage.add_monogram_button.when_present.fire_event("onclick")
+      @detailPage.add_monogram_checkbox_value.should == "checked"
+    end
+  end
+end
+
+Then /^the "(.*?)", "(.*?)" and "(.*?)" options are displayed in the item summary for "(.*?)"$/ do |customisation_option_1, customisation_option_2, customisation_option_3, target_item_code|
+  target_item_id = ""
+  all_data_item_ids = []
+  @customisation_in_desc = []
+  @item_custom_amounts = []
+  #######################################################################################################################################################
+  # iterate through fieldset block that is the root of the structure containing the item information,to so we may find the 'data-item-id' for each item 
+  #######################################################################################################################################################
+  @basketPage.wait_until_element_present(@basketPage.first_product_item_fieldset)
+  @basketPage.product_item_fieldsets.each do |item|
+    # get item code from image link
+    item_codes_from_url = item.link(:class => "img", :href => /.*/).href.split "|"
+    item_product_code = item_codes_from_url[INDEX_FOR_STOCK_CODE]
+
+    # get data-item-id (that is used as a key to locate each item in the basket)
+    id_attribute = item.attribute_value("id")
+    data_item_id = id_attribute.sub(FIELDSET_PRODUCT_ITEM_SUFFIX,'')
+
+	  # store data-item-id in an array (that we can use later to retrieve information relating to each item)
+	  all_data_item_ids.push(data_item_id)
+
+    # locate the target item for which the description is needed, by using its item code
+	  target_item_id = data_item_id if (item_product_code == target_item_code)
+  end
+
+  #######################################################################################################################################################
+  # Iterate through basket items using the data-item-id (which uniquely identify each item in the basket) to find item code and item description.
+  # Do this in reverse order so that the last item added is selected first. This is a precaution against picking up an item with the same item code
+  # that was previously added to the basket (ie. in another scenario or another dataset from this scenario)
+  #######################################################################################################################################################
+  all_data_item_ids.reverse.each do |item_id|
+    # get item code
+    item_codes_from_url = @basketPage.item_image_link(item_id).href.split "|"
+    item_product_code = item_codes_from_url[INDEX_FOR_STOCK_CODE]
+
+    # get item description
+    item_description = @basketPage.product_item_description(item_id).text
+    puts "\nINFO: Description for product item \'#{item_product_code}\' added to basket is #{item_description}"
+
+    if item_id == target_item_id
+      ####################################################################################################################
+      # Find the item's customisation cost (remove '£' sign, which is the 1st character)
+      ####################################################################################################################
+      @basketPage.item_customisation_amounts(item_id).each do |item|
+        @item_custom_amounts.push(item.text.sub(/[^\d]/,"").strip)
+      end
+
+      # Find the item's price
+      @item_price = @basketPage.item_price_amount(item_id)
+
+    	####################################################################################################################
+      # Find the item's customisation options within the item description in the basket.
+	    ####################################################################################################################
+  	  match_result = item_description.match /(.*)sleeve(.*)\n(.*)\n?(.*)?\n?(.*)?/
+      index = 2
+      while match_result[index] != ""  && match_result[index] != nil
+        @customisation_in_desc.push(match_result[index].gsub(",","").sub('"','').strip)
+        index+=1
+      end
+
+      ####################################################################################################################
+      # Identify any options other than single or double cuff (which don't affect cost) and store them in an array for later use
+      ####################################################################################################################
+      index = 1; @found_pocket = FALSE; @found_sleeve = FALSE; @found_monogram = FALSE
+      while @customisation_in_desc[index] != nil
+        @found_pocket = TRUE; @pocket_index = index if @customisation_in_desc[index].downcase == ADDED_POCKET_RESULT
+        @found_sleeve = TRUE; @sleeve_index = index if @customisation_in_desc[index].downcase.include? CUSTOM_SLEEVE_RESULT
+        @found_monogram = TRUE; @monogram_index = index if @customisation_in_desc[index].downcase.include? ADDED_MONOGRAM_RESULT
+        index+=1
+      end
+
+      ####################################################################################################################
+      # Verify that the customisation options match the values in the scenario data table
+      ####################################################################################################################
+      if @single_cuff == TRUE
+        if @customisation_in_desc[0].downcase != SINGLE_CUFF
+          puts "\nERROR: Item \'#{item_product_code}\' with item-id \'#{item_id}\' has incorrect customisation \'#{@customisation_in_desc[0]}\'"
+          @customisation_in_desc[0].downcase.should == SINGLE_CUFF  # r-spec failure point
+        end
+      end
+      if @double_cuff == TRUE
+        if @customisation_in_desc[0].downcase != DOUBLE_CUFF
+          puts "\nERROR: Item \'#{item_product_code}\' with item-id \'#{item_id}\' has incorrect customisation \'#{@customisation_in_desc[0]}\'"
+          @customisation_in_desc[0].downcase.should == DOUBLE_CUFF  # r-spec failure point
+        end
+      end
+
+      if @add_pocket && !@found_pocket
+        puts "\nERROR: Item \'#{item_product_code}\' with item-id \'#{item_id}\' has missing \'added pocket\' customisation"
+        @found_pocket.should == TRUE  # r-spec failure point
+      end
+      if @add_sleeve && !@found_sleeve
+        puts "\nERROR: Item \'#{item_product_code}\' with item-id \'#{item_id}\' has missing \'sleeve\' customisation"
+        @found_sleeve.should == TRUE  # r-spec failure point
+      end
+      if @add_monogram && !@found_monogram
+        puts "\nERROR: Item \'#{item_product_code}\' with item-id \'#{item_id}\' has missing \'monogram\' customisation"
+        @found_monogram.should == TRUE  # r-spec failure point
+      end
+    end
+  end
+end
+
+And /^the price is updated accordingly$/ do
+  ####################################################################################################################
+  # Verify the cost of each customisation option (stored in array '@item_custom_amounts') is correct
+  ####################################################################################################################
+  index = 1
+  @item_custom_amounts.each do |amount|
+    amount.should == POCKET_AMOUNT         if @found_pocket && index == @pocket_index
+    amount.should == CUSTOM_SLEEVE_AMOUNT  if @found_sleeve && index == @sleeve_index
+    amount.should == MONOGRAM_AMOUNT       if @found_monogram && index == @monogram_index
+    index+=1
+  end
+  @item_price.should_not == nil
+end
+

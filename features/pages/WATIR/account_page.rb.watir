@@ -1,0 +1,24 @@
+class MyAccountPage
+  # include common methods for page object classes (located in common_modules.rb)
+  include CommonPageMethods
+  include Waiting
+  include Lightboxes
+  include TeliumTags
+
+  #######################################################################
+  # define page object elements on the "MyAccount" page
+  #######################################################################
+
+  attr_accessor :my_account_link
+
+  def initialize(browser,country)
+    @browser               = browser
+    @country               = country
+    @my_account_link       = @browser.div(:id => 'account_nav').link(:href => /account_nav_opts/)
+  end
+
+  def header
+    @browser.div(:class => 'first row').div(:class => /simple_header/)
+  end
+
+end

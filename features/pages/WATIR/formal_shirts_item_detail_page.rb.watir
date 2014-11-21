@@ -1,0 +1,982 @@
+require "#{Dir.pwd}/features/lib/common_modules"
+
+#INCHES = "inches"
+#CM = "cm"
+NONE = "none"
+ERROR = "error"
+
+class FormalShirtsItemDetailPage
+  # include common methods for page object classes (located in common_modules.rb)
+  include Waiting
+  include CommonPageMethods
+
+  attr_accessor :minibar, :minibar_header, :qty_in_shortlist, :view_all_items_button, :view_all_items_text_link, :view_all_items_button_image
+
+  #-----------------------------------------------------------------------------------
+  ####################################################################################
+  # define page object elements on the formal shirts product page
+  ####################################################################################
+  #-----------------------------------------------------------------------------------
+  def initialize(browser, country)
+    @browser = browser
+    @country = country
+    @mtc_href_identifier   = /TieCufflinkMatcher/
+
+    # Elements located on the shortlist minibar (ie. related to shortlist functionality)
+    @minibar = @browser.div(:class => "minibar")
+    @minibar_header = @minibar.div(:class => "minibar_header")
+    @minibar_products = @minibar.div(:class => "minibar_prods")
+    @qty_in_shortlist = @minibar_header.span(:id => "shotlistQty")
+    @view_all_items_button = @minibar_header.link(:href => /ShortList\.aspx/)
+    @view_all_items_text_link = @minibar_products.link(:href => /ShortList\.aspx/)
+    @view_all_items_button_image = @view_all_items_button.img(:src => /bt_view_my_shortlist/)
+  end
+
+  # Element that contains the user controls on this page eg. 'size' selection box
+  def main_controls_section
+    @browser.span(:id => "ctl00_contentBody_ctl02_instock")
+  end
+
+  def mtc_link
+    @browser.link(:class => "match_ties_cuffs", :href => @mtc_href_identifier)
+  end
+
+  def mtc_lightbox
+    @browser.div(:id => "tie_cufflink_matcher")
+  end
+
+  # add to basket button
+  def add_to_basket_button
+    @browser.button(:id => "ctl00_contentBody_ctl02_submit")
+  end
+
+  def add_to_shortlist
+    @browser.link(:class => "shortlist_action add")
+  end
+
+  ####################################################################################
+  # quantity related methods
+  ####################################################################################
+  def quantity
+    @browser.select(:id => "quantity").value
+  end
+
+  def quantity=(value)
+    @browser.execute_script("$('#quantity').getSetSSValue('#{value}');")
+  end
+
+  ####################################################################################
+  # sleeve length related methods
+  ####################################################################################
+  # sleeve length selection box
+  def sleeve_length_select_box
+    @browser.link(:href => /sleeve_length/, :class => "tooltip_link")
+  end
+
+  # sleeve length fieldset which contains the selection box.
+  # It determines whether or not the selection box is highlighted in red
+  def sleeve_length_fieldset
+    @browser.fieldset(:class => /sleeve_length/)
+  end
+
+  def sleeve_length_select_box_contents
+    sleeve_length_select_box.elements(:class => /.*/).each do |element|
+      return element.text.sub('"','') if element.tag_name == "strong"
+    end
+    return ERROR
+  end
+
+  def sleeve_length_section
+    @browser.div(:id => "sleeve_length")
+  end
+
+  def all_sleeve_length_links
+    sleeve_length_section.links(:href => /.*/)
+  end
+
+  # select value in sleeve length selection box by index
+  def sleeve_length_link_by_index(index)
+    sleeve_length_section.link(:href => /.*/, :index => index)
+  end
+
+  # select value in sleeve length selection box by index
+  def sleeve_length_link(value)
+    sleeve_length_section.link(:href => value)
+  end
+
+  def first_sleeve_length_link
+    sleeve_length_section.link(:href => /.*/)
+  end
+
+  # data table that contains all standard and custom sleeve length information, measurements and pricing
+  def sleeve_length_data_table
+    sleeve_length_section.dl(:id => "customLength")
+  end
+
+  ####################################################################################
+  # collar size related methods
+  ####################################################################################
+  # collar size election box
+  def collar_size_select_box
+    @browser.link(:href => /collar_size/, :class => "tooltip_link")
+  end
+
+  def collar_size_section
+    @browser.div(:id => "collar_size")
+  end
+
+  def all_collar_size_links
+    @browser.div(:id => "collar_size").links(:href => /.*/)
+  end
+
+  # sleeve length fieldset which contains the selection box.
+  # It determines whether or not the selection box is highlighted in red
+  def collar_size_fieldset
+    @browser.fieldset(:class => "collar_size")
+  end
+
+  # find collar size link by index
+  def collar_size_by_index(index)
+    @browser.div(:id => "collar_size").link(:href => /.*/, :index => index)
+  end
+
+  def first_collar_size_link
+    @browser.div(:id => "collar_size").link(:href => /.*/)
+  end
+
+  ####################################################################################
+  # shortlist related methods - *** may relocate these to module common_methods.rb ***
+  ####################################################################################
+#  def minibar
+#    @browser.div(:class => "minibar")
+#  end
+
+#  def minibar_header
+#    minibar.div(:class => "minibar_header")
+#  end
+
+#  def qty_in_shortlist
+#    minibar_header.span(:id => "shotlistQty")
+#  end
+
+#  def minibar_products
+#    @minibar.div(:class => "minibar_prods")
+#  end
+
+#  def view_all_items_text_link
+#    minibar_products.link(:href => /ShortList\.aspx/)
+#  end
+
+#  def view_all_items_button
+#    @minibar_header.link(:href => /ShortList\.aspx/)
+#  end
+
+#  def view_all_items_button_image
+#    view_all_items_button.img(:src => /bt_view_my_shortlist/)
+#  end
+
+  def shortlist_item_thumbnail_link(item_code)
+    @minibar_products.link(:class => "img", :href => /#{item_code}/)
+  end
+
+  def shortlist_item_thumbnail_photo(item_code)
+    shortlist_item_thumbnail_link(item_code).img(:src => /(.*)(#{item_code})(.*)\.jpg/)
+  end
+
+  def click_view_all_items_button
+    @view_all_items_button.when_present.click
+    ShortlistPage.new(@browser,@country)
+  end
+
+  def click_view_all_items_text_link
+    @view_all_items_text_link.click
+    ShortlistPage.new(@browser,@country)
+  end
+
+  ####################################################################################
+  # customisation options related methods - eg. single/double cuff
+  ####################################################################################
+
+  def single_cuff_radio_button
+    @browser.radio(:id => "sngl_cuff")
+  end
+
+  def double_cuff_radio_button
+    @browser.radio(:id => "dbl_cuff")
+  end
+
+  def add_pocket_section
+    @browser.div(:id => "uniform-add_pocket")
+  end
+
+  def add_pocket_checked
+    add_pocket_section.span(:class => "checked")
+  end
+
+  def add_pocket_status_attr
+    add_pocket_section.span(:class => /.*/)
+  end
+
+  def add_pocket_checkbox
+    add_pocket_section.checkbox(:id => "add_pocket")
+  end
+
+  ####################################################################################
+  # monogram related methods
+  ####################################################################################
+
+  def add_monogram_section
+    @browser.div(:id => "ctl00_contentBody_ctl02_addMngm")
+  end
+
+  def add_monogram_checkbox
+    add_monogram_section.checkbox(:id => "add_mngm")
+  end
+
+  # span element that contains the checkbox and its value (ie. "checked" or "")
+  def add_monogram_is_checked
+    add_monogram_section.span(:class => "checked")
+  end
+
+  def add_monogram_status_attr
+    add_monogram_section.span(:class => /.*/)
+  end
+
+  def monogram_description
+    add_monogram_section.div(:id => "monogram_desc")
+  end
+
+  #-----------------------------------------------------------------------------------
+  ####################################################################################
+  # define methods to call the page objects defined on the formal shirts page
+  ####################################################################################
+  #-----------------------------------------------------------------------------------
+  def add_to_basket
+    add_to_basket_button.when_present.click
+  end
+
+  # Open the match tie and cufflinks lightbox. Wait up to 10secs for it to open, return FALSE if it
+  # didn't open
+  def open_mtc_lightbox
+    lightbox_opened = FALSE
+    time_secs = 0
+
+    mtc_link.click
+    while time_secs < 10
+      if mtc_lightbox.exists?
+        lightbox_opened = TRUE
+        break
+      end
+      sleep 1
+      time_secs+=1
+    end
+    return lightbox_opened
+  end
+
+  def add_monogram_checkbox_value
+    add_monogram_status_attr.exists?.should == TRUE
+    if add_monogram_is_checked.exists?
+      return "checked"
+    else
+      return ""
+    end
+  end
+
+  def add_pocket_checkbox_value
+    add_pocket_status_attr.exists?.should == TRUE
+    if add_pocket_checked.exists?
+      return "checked"
+    else
+      return ""
+  end
+
+end
+
+  ####################################################################################
+  # sleeve length related
+  ####################################################################################
+  def open_sleeve_length_select_box
+    # Wait until 'sleeve length' select box is loaded.
+    wait_until_element_present(sleeve_length_select_box)
+    if sleeve_length_section.exists?
+      sleeve_length_select_box.click if sleeve_length_box_is_closed
+    else
+      # If the 'div' with id attribute "sleeve_length" cannot be accessed within the page yet, it's most likely to be because the
+      # 'sleeve length' select box has not been opened after the page has been (or its in the process of loading).
+      sleeve_length_select_box.click
+    end
+    # wait until the 'sleeve length' select box opens
+    wait_until_element_present(sleeve_length_box_open_indicator)
+  end
+
+  def sleeve_length_box_open_indicator
+    @browser.div(:id => "sleeve_length", :class => /open/)
+  end
+
+  def sleeve_length_box_is_open
+    @browser.div(:id => "sleeve_length", :class => /open/).exists?
+  end
+
+  def sleeve_length_box_closed_indicator
+    @browser.div(:id => "sleeve_length", :class => /closed/)
+  end
+
+  def sleeve_length_box_is_closed
+    @browser.div(:id => "sleeve_length", :class => /closed/).exists?
+  end
+
+  def sleeve_length_highlighted_in_red
+    return NONE if !@browser.element(:class => /(sleeve_length).*(select).*/).exists?
+    @browser.element(:class => /(sleeve_length).*(select).*(has_errors)/).exists?
+  end
+
+  def set_sleeve_length_by_index(index)
+    sleeve_length_link_by_index(index).when_present.fire_event("onclick")
+  end
+
+  def get_all_sleeve_lengths
+  ###############################################################################################################################################
+  # Create hash @slv_table_values where the 'key' is the actual length in inches, and 'val' is the code needed to select the
+  # link within the 'div' table.
+  # These links can only be identified by their 'href' attribute. In the href there is a '#' followed by the actual sleeve length code
+  # (eg. 33|1), which is the part we need.
+  # Note that the 'dd' elements with class "lenOp" contain all the child elements needed to build the hash @slv_table_values.
+  ###############################################################################################################################################
+    slv_table_values = {}
+    # The method 'open_sleeve_length_select_box' MUST be called before attempting to set the sleeve length value. So fail this test if the selection box is not open.
+    fail "ERROR: 'Sleeve Length' values cannot accessed as the 'Sleeve Length' selection box is not open" if sleeve_length_box_is_closed
+
+    # Wait for the first link in the data table (that holds the sleeve length code values) to become present.
+    sleep 1
+
+    sleeve_length_data_table.dds(:class => "lenOp").each do |element|
+      # Each 'dd' element should have a child 'link' element. This link has the 'href' attribute, we use as the 'key'.
+      fail "ERROR: 'Sleeve Length' link element that should be present after opening the 'Sleeve Length' selection box no longer exists" if !element.link.exists?
+      slv_code = element.link.href.split '#'
+
+      # Each 'dd' element should have a child 'span' element. This 'span' text contains the sleeve length value in inches. We use this as the 'val'.
+      fail "ERROR: 'Sleeve Length' span element that should be present after opening the 'Sleeve Length' selection box no longer exists" if !element.span(:class => "size").exists?
+      slv_value = element.span(:class => "size").text.sub('"','')
+      slv_table_values.merge!(slv_value => slv_code[1])
+    end
+    return slv_table_values
+  end
+
+  #####################################################################################################################################################################
+  # Set the value in sleeve length selection box. This is done by clicking on a link within a table which is located within a 'div' with the id of 'sleeve_length'.   #
+  # This link is found by matching the link 'href' attribute (to 'size_option_code').                                                                                 #
+  #####################################################################################################################################################################
+  # IMPORTANT NOTE: Attempting to click on this link before the 'div' is open/visible (and the table elements accessible) will cause an exception and fail this test! #
+  #####################################################################################################################################################################
+  def set_sleeve_length_value(size_option_code)
+    # Wait up to 5 secs for selection box to open. It should already be open, but this is a further safeguard as we are calling this method repeatedly (ie. from a while loop).
+    Decimal time_secs = 0
+    while sleeve_length_box_is_closed
+      break if time_secs > 5.0
+      sleep 0.5
+      time_secs = time_secs + 0.5
+      puts "\ntime waiting for sleeve length links to load #{time_secs} secs"
+    end
+    fail "ERROR: 'Sleeve Length' value cannot be set as the 'Sleeve Length' selection box is not open" if sleeve_length_box_is_closed
+
+    # Build a regular expression from size_option_code (eg. "33|7") that will match the 'href' attribute of the link we want to click (eg. '#33\|7')
+    size_option_code.sub!('|','\|') if !size_option_code.include? '\\'
+    size_desc_code = /#(#{size_option_code})/
+
+    # Wait for the elements (specifically the link whose 'href' attribute matches size_option_code) in the data table to become present.
+    # Then click on that link, to set the sleeve length value.
+    link = sleeve_length_section.link(:href => size_desc_code)
+    wait_until_element_present(link)
+    link.fire_event("onclick")
+    value_found = TRUE
+    return value_found
+  end
+
+  # If the link used to set the target sleeve length is located BELOW the 'dt' element marker (for custom sleeve length),
+  # then the sleeve length is a custom length.
+  def is_a_custom_sleeve_length(size_option_code)
+    count = 0
+    target_element_index = 0
+    info_element_index = 0
+    size_option_code.sub!('\\','') if size_option_code.include? '\\'     # remove '\' from size code if needed (eg. 33\|8)
+
+    # Wait for the first link in the data table (that holds the sleeve length code values) to become present.
+    sleep 1
+
+    # Search the 'dd' and 'dt' elements in this data table for information
+    sleeve_length_data_table.elements(:class => "lenOp").each do |element|
+      # The 'dd' element should have a child element 'span'. The 'span' text contains the sleeve length value in inches
+      if element.tag_name == "dd"
+        # Found the sleeve length link that matches the currently selected sleeve length value 'size_option_code' (eg. 33|8)
+        slv_code = element.link(:href => /.*/).href.split '#'
+        target_element_index = count if slv_code[1] == size_option_code
+      elsif element.tag_name == "dt" && element.span(:class => /cost/).exists?
+        # The 'dt' element we are searching for should have a child element 'span' with class 'meta cost'.
+        # The remaining 'dd' elements in this data table should all relate to custom sleeve lengths.
+        info_element_index = count
+      end
+      count+=1
+    end
+    return TRUE if target_element_index > info_element_index
+    return FALSE
+  end
+
+  ####################################################################################
+  # collar size related
+  ####################################################################################
+  def open_collar_size_select_box
+    # Wait until 'collar size' select box is loaded.
+    wait_until_element_present(collar_size_select_box)
+    if collar_size_section.exists?
+      collar_size_select_box.click if collar_size_box_is_closed
+    else
+      # If the 'div' with id attribute "collar_size" cannot be accessed within the page yet, it's most likely to be because the
+      # 'collar size' select box has not been opened after the page has been (or its in the process of loading).
+      collar_size_select_box.click
+    end
+    # wait until the 'collar size' select box opens
+    wait_until_element_present(collar_size_box_open_indicator)
+  end
+
+  def close_collar_size_select_box
+    # If the select box is open, then close it.
+    if collar_size_box_is_open
+      collar_size_select_box.click
+    end
+  end
+
+  def collar_size_box_open_indicator
+    @browser.div(:id => "collar_size", :class => /open/)
+  end
+
+  def collar_size_box_is_open
+    @browser.div(:id => "collar_size", :class => /open/).exists?
+  end
+
+  def collar_size_box_closed_indicator
+    @browser.div(:id => "collar_size", :class => /closed/)
+  end
+
+  def collar_size_box_is_closed
+    @browser.div(:id => "collar_size", :class => /closed/).exists?
+  end
+
+  def collar_size_highlighted_in_red
+    return NONE if !@browser.element(:class => /(collar_size).*(select).*/).exists?
+    @browser.element(:class => /(collar_size).*(select).*(has_errors)/).exists?
+  end
+
+  def set_collar_size_by_index(index)
+    collar_size_by_index(index).when_present.fire_event("onclick")
+  end
+
+
+  # Set the value in collar size selection box. This is done by clicking on a link within a table under a 'div' element (ie. div with the id = collar size).
+  # This link is found by matching the link text to the specified 'value'.
+  def set_collar_size_value(value)
+    # The method 'open_collar_size_select_box' MUST be called before attempting to set the collar size value. So fail this test if the selection box is not open.
+    fail "ERROR: 'collar size' value cannot be set as the 'collar size' selection box is not open" if collar_size_box_is_closed
+
+    value = value + '"'
+    value_found = FALSE
+    all_collar_size_links.each do |link|
+      if link.text == value
+        link.fire_event("onclick")
+        value_found = TRUE
+        break
+      end
+    end
+    return value_found
+  end
+
+  #-----------------------------------------------------------------------------------
+  ####################################################################################
+  # define (page object) elements in "add monogram" lightbox
+  ####################################################################################
+  #-----------------------------------------------------------------------------------
+  def monogram_lightbox
+    @browser.fieldset(:id => "monogram")
+  end
+
+  # add monogram button  (located at the bottom of the lightbox)
+  def add_monogram_button
+    monogram_lightbox.image(:id => "ctl00_contentBody_ctl02_ctl00_addMono")
+  end
+
+  # initials text box
+  def initials_text_box
+    monogram_lightbox.text_field(:id => "ctl00_contentBody_ctl02_ctl00_mg_initials")
+  end
+
+  ##########################################################################
+  # define methods for 'fonts' radio buttons
+  ##########################################################################
+  def select_brush_script_font
+    monogram_lightbox.radio(:id => "mg_font_brush_script").fire_event("onclick")
+  end
+
+  def select_circle_font
+    monogram_lightbox.radio(:id => "mg_font_circle").fire_event("onclick")
+  end
+
+  def select_clarendon_font
+    monogram_lightbox.radio(:id => "mg_font_clarendon").fire_event("onclick")
+  end
+
+  def select_diamond_font
+    monogram_lightbox.radio(:id => "mg_font_diamond").fire_event("onclick")
+  end
+
+  def select_old_english_font
+    monogram_lightbox.radio(:id => "mg_font_olde_english").fire_event("onclick")
+  end
+
+  def select_roman_block_font
+    monogram_lightbox.radio(:id => "mg_font_roman_block").fire_event("onclick")
+  end
+
+  def select_sports_script_font
+    monogram_lightbox.radio(:id => "mg_font_sports_script").fire_event("onclick")
+  end
+
+  def select_upright_script_font
+    monogram_lightbox.radio(:id => "mg_font_upright_script").fire_event("onclick")
+  end
+
+  #####################################################################################
+  # define (page object) elements for some of the 'colour' and "position" radio buttons
+  #####################################################################################
+  def colour_black_radio_button
+    monogram_lightbox.radio(:id => "mg_colour_black")
+  end
+
+  def colour_burgundy_radio_button
+    monogram_lightbox.radio(:id => "mg_colour_burgundy")
+  end
+
+  def position_chest_radio_button
+    monogram_lightbox.radio(:id => "pos_chest")
+  end
+
+  ##########################################################################
+  # define methods for 'colour' radio buttons
+  ##########################################################################
+  def select_colour_black
+    monogram_lightbox.radio(:id => "mg_colour_black").fire_event("onclick")
+  end
+
+  def select_colour_burgundy
+    monogram_lightbox.radio(:id => "mg_colour_burgundy").fire_event("onclick")
+  end
+
+  def select_colour_purple
+    monogram_lightbox.radio(:id => "mg_colour_purple").fire_event("onclick")
+  end
+
+  def select_colour_navy
+    monogram_lightbox.radio(:id => "mg_colour_blue").fire_event("onclick")
+  end
+
+  def select_colour_royal_blue
+    monogram_lightbox.radio(:id => "mg_colour_royalblue").fire_event("onclick")
+  end
+
+  def select_colour_light_blue
+    monogram_lightbox.radio(:id => "mg_colour_lightblue").fire_event("onclick")
+  end
+
+  def select_colour_racing_green
+    monogram_lightbox.radio(:id => "mg_colour_racing_green").fire_event("onclick")
+  end
+
+  def select_colour_red
+    monogram_lightbox.radio(:id => "mg_colour_red").fire_event("onclick")
+  end
+
+  def select_colour_pink
+    monogram_lightbox.radio(:id => "mg_colour_pink").fire_event("onclick")
+  end
+
+  def select_colour_grey
+    monogram_lightbox.radio(:id => "mg_colour_grey").fire_event("onclick")
+  end
+
+  def select_colour_yellow
+    monogram_lightbox.radio(:id => "mg_colour_yellow").fire_event("onclick")
+  end
+
+  def select_colour_white
+    monogram_lightbox.radio(:id => "mg_colour_white").fire_event("onclick")
+  end
+
+  ##########################################################################
+  # define methods for 'position' radio buttons
+  ##########################################################################
+  def select_position_chest
+    monogram_lightbox.radio(:id => "pos_chest").fire_event("onclick")
+  end
+
+  def select_position_cuff_centre
+    monogram_lightbox.radio(:id => "pos_cuff_centre").fire_event("onclick")
+  end
+
+  def select_position_cuff_above_watch
+    monogram_lightbox.radio(:id => "pos_cuff_watch").fire_event("onclick")
+  end
+
+  def select_position_cuff_below_link
+    monogram_lightbox.radio(:id => "pos_cuff_link").fire_event("onclick")
+  end
+
+  #-----------------------------------------------------------------------------------
+  ####################################################################################
+  # define (page object) elements and simple methods for "what's my size" lightbox
+  ####################################################################################
+  #-----------------------------------------------------------------------------------
+
+  # the "what's my size" link
+  def whats_my_size_link
+    @browser.link(:id => "ctl00_contentBody_ctl02_sizeGuide")
+  end
+
+  # the "what's my size" lightbox (that contains measurements in inches or centimeters)
+  def whats_my_size_lightbox
+    @browser.div(:id => "shirts_size_guide")
+  end
+
+  # the inner sections of the "what's my size" lightbox containing the measurement tables.
+  # There should be 1 table for units in 'inches', and 1 table for units in 'cm'.
+  # Note that only 1 table can be active (displayed) at one time.
+  def wms_lightbox_tabbed_sections
+    whats_my_size_lightbox.divs(:class => "tabbed section")
+  end
+
+  # the tabbed inner section of the "what's my size" lightbox with measurements displayed in 'units' (eg. inches)
+  def wms_lightbox_tabbed_section(units)
+    whats_my_size_lightbox.div(:class => "tabbed section", :id => "#{units}")
+  end
+
+  # the heading text describing the type of clothing eg. slim fit shirts
+  def wms_header(units)
+    wms_lightbox_tabbed_section(units).div(:class => "header").h3(:class => /.*/)
+  end
+
+  # the rows from the 'inches' measurement table that contain clothing item data and parameters (eg. sleeve length)
+  def wms_data_table_rows(units)
+    wms_lightbox_tabbed_section(units).table(:class => /.*/).tds(:class => /.*/)
+  end
+
+  # the column headings from the 'inches' measurement table (eg. collar size)
+  def wms_data_table_columns(units)
+    wms_lightbox_tabbed_section(units).table(:class => /.*/).ths(:class => /.*/)
+  end
+
+  # the link that is used to convert the measurement table data into 'cm'
+  def convert_to_cm
+    whats_my_size_lightbox.link(:href => /cm$/)
+  end
+
+  def errcheck_cm_link
+    link = convert_to_cm
+    if link.exists? != TRUE
+      puts "\nERROR : The \'View in cm\' option cannot be found"
+      link.exists?.should == TRUE
+    end
+  end
+
+  # the link that is used to convert the measurement table data into 'inches'
+  def convert_to_inches
+    whats_my_size_lightbox.link(:href => /inch$/)
+  end
+
+  def errcheck_inch_link
+    link = convert_to_inches
+    if link.exists? != TRUE
+      puts "\nERROR : The \'View in inches\' option cannot be found"
+      link.exists?.should == TRUE
+    end
+  end
+
+  #-----------------------------------------------------------------------------------
+  ####################################################################################
+  # define "what's my size" lightbox utility methods used by step definitions
+  ####################################################################################
+  #-----------------------------------------------------------------------------------
+
+  # Find the current units displayed in the measurement table.
+  def table_units_displayed
+    # Wait until either of the 'div' elements has the style attribute set to "display: block"
+    Watir::Wait.until { (wms_lightbox_tabbed_section(INCHES).style.downcase.include? ("block")) || (wms_lightbox_tabbed_section(CM).style.downcase.include? ("block")) }
+    if wms_lightbox_tabbed_section(INCHES).style.downcase.include? ("block")
+      # the 'div' element with class = "tabbed section" has the style attribute set to "display: block" when id = "inches". So units are in 'inches'
+      return INCHES
+    elsif wms_lightbox_tabbed_section(CM).style.downcase.include? ("block")
+      # the 'div' element with class = "tabbed section" has the style attribute set to "display: block" when id = "cm". So units are in 'cm'
+      return CM
+    else
+      return NONE
+    end
+  end
+
+  # Attempt to find the specified text (eg. collar size) in the column headings of the measurement table.
+  def find_table_column(column_text, units)
+    return FALSE if (units != INCHES) && (units != CM)
+
+    # search for 'column_text' in each measurement table column
+    found_column_text = FALSE
+    wms_data_table_columns(units).each do |table_column|
+      if (table_column.text.downcase == column_text)
+        found_column_text = TRUE
+        break
+      end
+    end
+    return found_column_text
+  end
+
+  # Attempt to find the specified text (eg. sleeve length) in the rows of the measurement table.
+  def find_table_row(row_text, units)
+    return FALSE if (units != INCHES) && (units != CM)
+
+    # search for 'row_text' in each measurement table row
+    found_row_text = FALSE
+    wms_data_table_rows(units).each do |table_row|
+      if (table_row.text.downcase == row_text)
+        found_row_text = TRUE
+        break
+      end
+    end
+    return found_row_text
+  end
+
+  #-----------------------------------------------------------------------------------
+  ####################################################################################
+  # Define (page object) elements for "Match Tie and Cufflinks" lightbox
+  ####################################################################################
+  #-----------------------------------------------------------------------------------
+  def mtc_heading_text
+    mtc_lightbox.h2(:class => /.*/).text # should be == "Our recommended ties and cufflinks to match this shirt"
+  end
+
+  def mtc_shirt_main_photo(item_code)
+    mtc_lightbox.img(:id=> "mainShirt", :src => /#{item_code}/)
+  end
+
+  def mtc_close_link
+    mtc_lightbox.span(:class => "close").link(:href => /.*/)
+  end
+
+  def mtc_tie_in_main_photo(tie_item_code)
+    mtc_lightbox.div(:class => "column current_selection").div(:class => "tie").img(:class => "main-image", :src => /#{tie_item_code}/)
+  end
+
+  def mtc_cufflinks_in_main_photo(cufflink_item_code)
+    mtc_lightbox.div(:class => "column current_selection").div(:class => "cufflinks").img(:class => "main-image", :src => /#{cufflink_item_code}/)
+  end
+
+  ####################################################################################
+  # Tie page object elements
+  ####################################################################################
+  def mtc_tie_thumb_photo(tie_item_code)
+    mtc_lightbox.div(:class => "tie summary").link(:class => "detail-image").img(:src => /#{tie_item_code}/)
+  end
+
+  def mtc_prev_tie
+    mtc_lightbox.div(:class => "rowNav").span(:class => /tie_nav/, :title=> "Select previous tie")
+  end
+
+  def mtc_next_tie
+    mtc_lightbox.div(:class => "rowNav").span(:class => /tie_nav/, :title=> "Select next tie")
+  end
+
+  def mtc_prev_tie_thumb_photo(prev_tie_item_code)
+    mtc_lightbox.div(:class => 'product_selector').div(:class => /right/).div(:class => "ties").li(:class => "show-prev").img(:class => "list-image", :src => /#{prev_tie_item_code}/)
+  end
+
+  def mtc_next_tie_thumb_photo(next_tie_item_code)
+    mtc_lightbox.div(:class => 'product_selector').div(:class => /left/).div(:class => "ties").li(:class => "show-next").img(:class => "list-image", :src => /#{next_tie_item_code}/)
+  end
+
+  def mtc_add_tie_button
+    mtc_lightbox.div(:class => "tie summary").button(:type => "image", :value => "Add to basket")
+  end
+
+  def mtc_add_tie_title_link(tie_item_code)
+    mtc_lightbox.div(:class => "tie summary").div(:class => "details").link(:href => /#{tie_item_code}/)
+  end
+
+  def mtc_add_tie_description_text
+    mtc_lightbox.div(:class => "tie summary").div(:class => "details").lis(:class => /.*/)
+  end
+
+  def mtc_tie_price_text
+    mtc_lightbox.div(:class => "tie summary").div(:class => "purchasing").div(:class => "price").span(:class => "current")
+  end
+
+  def mtc_qty_ties_in_basket
+    mtc_lightbox.div(:class => "tie summary").div(:class => "details").span(:class => "count").text.to_i
+  end
+
+  ####################################################################################
+  # Cufflinks page object elements
+  ####################################################################################
+  def mtc_cufflinks_thumb_photo(cufflinks_item_code)
+    mtc_lightbox.div(:class => "cufflinks summary").link(:class => "detail-image").img(:src => /#{cufflinks_item_code}/)
+  end
+
+  def mtc_prev_cufflinks
+    mtc_lightbox.div(:class => "rowNav").span(:class => /cufflink_nav/, :title=> "Select previous cufflink")
+  end
+
+  def mtc_next_cufflinks
+    mtc_lightbox.div(:class => "rowNav").span(:class => /cufflink_nav/, :title=> "Select next cufflink")
+  end
+
+  def mtc_prev_cufflinks_thumb_photo(prev_cufflinks_item_code)
+    mtc_lightbox.div(:class => /right/).div(:class => "cufflinks").li(:class => "show-prev").img(:class => "list-image", :src => /#{prev_cufflinks_item_code}/)
+  end
+
+  def mtc_next_cufflinks_thumb_photo(next_cufflinks_item_code)
+    mtc_lightbox.div(:class => /left/).div(:class => "cufflinks").li(:class => "show-next").img(:class => "list-image", :src => /#{next_cufflinks_item_code}/)
+  end
+
+  def mtc_add_cufflinks_button
+    mtc_lightbox.div(:class => "cufflinks summary").button(:type => "image", :value => "Add to basket")
+  end
+
+  def mtc_add_cufflinks_title_link(cufflinks_item_code)
+    mtc_lightbox.div(:class => "cufflinks summary").div(:class => "details").link(:href => /#{cufflinks_item_code}/)
+  end
+
+  def mtc_add_cufflinks_description_text
+    mtc_lightbox.div(:class => "cufflinks summary").div(:class => "details").lis(:class => /.*/)
+  end
+
+  def mtc_cufflinks_price_text
+    mtc_lightbox.div(:class => "cufflinks summary").div(:class => "purchasing").div(:class => "price").span(:class => "current")
+  end
+
+  def mtc_qty_cufflinks_in_basket
+    mtc_lightbox.div(:class => "cufflinks summary").div(:class => "details").span(:class => "count").text.to_i
+  end
+
+  ####################################################################################
+  # Match Tie and Cufflinks utility methods (ie. that call MTC page object elements)
+  ####################################################################################
+  def mtc_control_disabled(control)
+    control.class_name.include? "disabled"
+  end
+
+  def mtc_change_tie(shift_type)
+    @shift_disabled = FALSE
+    if shift_type = NEXT
+      if !mtc_control_disabled(mtc_next_tie)
+        mtc_select_next_tie
+      else
+        @shift_disabled = TRUE
+      end
+    elsif shift_type = PREVIOUS
+      if !mtc_control_disabled(mtc_prev_tie)
+        mtc_select_prev_tie
+      else
+        @shift_disabled = TRUE
+      end
+    end
+    return @shift_disabled
+  end
+
+  def mtc_change_cufflinks(shift_type)
+    @shift_disabled = FALSE
+    if shift_type = NEXT
+      if !mtc_control_disabled(mtc_next_cufflinks)
+        mtc_select_next_cufflinks
+      else
+        @shift_disabled = TRUE
+      end
+    elsif shift_type = PREVIOUS
+      if !mtc_control_disabled(mtc_prev_cufflinks)
+        mtc_select_prev_cufflinks
+      else
+        @shift_disabled = TRUE
+      end
+    end
+    return @shift_disabled
+  end
+
+  def mtc_select_next_tie
+    mtc_next_tie.when_present.fire_event("onclick")
+  end
+
+  def mtc_select_prev_tie
+    mtc_prev_tie.when_present.fire_event("onclick")
+  end
+
+  def mtc_select_next_cufflinks
+    mtc_next_cufflinks.when_present.fire_event("onclick")
+  end
+
+  def mtc_select_prev_cufflinks
+    mtc_prev_cufflinks.when_present.fire_event("onclick")
+  end
+
+  def mtc_add_cufflinks_to_basket
+    mtc_add_cufflinks_button.when_present.fire_event("onclick")
+  end
+
+  def mtc_add_tie_to_basket
+    mtc_add_tie_button.when_present.fire_event("onclick")
+  end
+
+  def mtc_close
+    mtc_close_link
+  end
+  #-----------------------------------------------------------------------------------
+  ####################################################################################
+  # fries popup/lightbox page object elements
+  ####################################################################################
+  #-----------------------------------------------------------------------------------
+
+  # fries popup dialog
+  def fries_popup
+    @browser.div(:id => "overlay_container", :class => "modal").div(:class => "fries_popup")
+  end
+
+  # fries popup 'close' link
+  def close_fries_link
+    fries_popup.span(:class => "close").link(:href => "#")
+  end
+
+  # fries link that loads the page displaying the shirts in the offer
+  def fries_offer_link
+    fries_popup.link(:class => "fries_cta", :href => /Lightboxlink/)
+  end
+
+  # main paragraph in the fries dialog
+  def fries_main_paragraph
+    fries_popup.p(:class => /.*/, :index => 0)
+  end
+
+  # lower paragraph in the fries dialog
+  def fries_lower_paragraph
+    fries_popup.p(:class => "last")
+  end
+
+  #-----------------------------------------------------------------------------------
+  ##########################################################################
+  # page object elements for website feedback popup
+  ##########################################################################
+  #-----------------------------------------------------------------------------------
+
+  # root element of the popup
+  def feedback_popup
+    @browser.div(:id => "layer_main_content")
+  end
+
+  # 'no thanks' button
+  def no_thanks_button
+    feedback_popup.div(:id => "layer_buttons").button(:id => "nothanks")
+  end
+
+  def yes_please_button
+    feedback_popup.div(:id => "layer_buttons").button(:id => "yesplease")
+  end
+end

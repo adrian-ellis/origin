@@ -1,0 +1,157 @@
+require_relative '../lib/common_modules'
+
+class CasualShirtsPage
+  # include common methods for page object classes (located in common_modules.rb)
+  include CommonProductPageElements
+  include CommonProductPageMethods
+  include CommonPageMethods
+  include Waiting
+  include Lightboxes
+  include TeliumTags
+
+  #######################################################################
+  # define page objects on the casual shirts product page
+  #######################################################################
+  def initialize(browser,country)
+    @browser = browser
+    @country = country
+
+    # Load the Casual Shirts Product page for the given country when a new instance of this 'page object' is created (if it's not already loaded).
+    # We do this here because, it's possible to load the Casual Shirts Product from the top level menus on most other ctshirts website pages.
+    case country
+      when GB
+        visit_product_page(CASUAL_SHIRTS, country) if !@browser.url.include? "casual-shirts"
+      when US
+        visit_product_page(CASUAL_SHIRTS, country) if !@browser.url.include? "sport-and-casual-shirts"
+      when AU
+        visit_product_page(CASUAL_SHIRTS, country) if !@browser.url.include? "casual-shirts"
+      when DE
+        visit_product_page(CASUAL_SHIRTS, country) if !@browser.url.include? "herren-freizeithemden"
+      else
+    end
+  end
+  
+  # the 'Size' links within the left hand navigation controls on the casual shirts product page
+  def size_links
+    if @country != DE
+      @browser.div(:id => "Size").ul(:class => "navList").links(:href => ALL_SHIRTS_IDENTIFIER_LANG_EN)
+    else
+      @browser.div(:id => "Size").ul(:class => "navList").links(:href => ALL_SHIRTS_IDENTIFIER_LANG_DE)
+    end
+  end
+
+  def first_size_link
+    if @country != DE
+      @browser.div(:id => "Size").ul(:class => "navList").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_EN)
+    else
+      @browser.div(:id => "Size").ul(:class => "navList").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_DE)
+    end
+  end
+
+  # Select 'size' within the left hand navigation controls
+  def select_size(size)
+    if @country != DE
+      @browser.div(:id => "Size").ul(:class => "navList").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_EN, :title => size).when_present.click
+    else
+      @browser.div(:id => "Size").ul(:class => "navList").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_DE, :title => size).when_present.click
+    end
+  end
+
+  #-----------------------------------------------------------------------------------
+  ####################################################################################
+  # define utility methods
+  ####################################################################################
+  #-----------------------------------------------------------------------------------
+
+  ####################################################################################
+  # Load casual shirt product item page (given the product item code (SKU))
+  ####################################################################################
+  def load_casual_shirt_detail_page(product_item_code)
+    # after the casual shirts page has loaded, select the 'View all' link so that all shirts are displayed on one page
+    sleep 2
+    if found_show_all
+      prev_url = @browser.url
+      show_all.click
+
+      # After selecting 'show all', we must wait the page reloads (ie. until browser url changes). Only then can we search for specific elements on the page.
+      wait_until_page_loaded("Casual Shirts - Show All", prev_url)
+      wait_until_element_present(first_shirt_item_link)
+    else
+      fail "ERROR: Cannot find \'Show All\' or \'Show 15 Per Page\' links" if !found_show_15_items
+    end
+
+    # Wait until the item with item code 'product_item_code' appears on the casual shirt product page. If the item cannot be found then this test fails.
+    time_secs = 0
+    while time_secs < PAGE_TIMEOUT_SECS
+      link = shirt_item_link(product_item_code)
+      break if link.exists?
+      sleep 1
+      time_secs+=1
+      puts "\nINFO: Waited \'#{time_secs}\' secs for item \'#{product_item_code}\' to be displayed on casual shirts product page"
+    end
+    fail "\nERROR: Check the \'scenario\' data table for this \'feature\' against casual shirts available on the ctshirts website. The item code is set to \'#{product_item_code}\' and cannot be found." if !link.exists?
+
+    # click on link to this casual shirt, then return the casual shirt detail page object (as the browser should now be loading this page)
+    link.click
+
+    # In 'watir-classic' / IE there is sometimes a problem performing an action (such as clicking on a link) because the focus is sometimes set to another area in the browser (eg. the address bar).
+    # But by clicking on the link again the focus is now set to the link.
+    time_secs = 0
+    while time_secs < PAGE_TIMEOUT_SECS
+      break if @browser.url.include? product_item_code
+      sleep 1
+      time_secs+=1
+      puts "\nINFO: Waited \'#{time_secs}\' secs for the casual shirts detail page to be displayed for \'#{product_item_code}\'"
+      link.click if @browser_str == 'ie'
+    end
+    fail "ERROR: Detail Page for Casual Shirt #{product_item_code} failed to load after #{PAGE_TIMEOUT_SECS} secs" if !@browser.url.include? product_item_code
+
+    return CasualShirtsItemDetailPage.new(@browser,@country)
+  end
+
+
+  #################################################################################################
+  # Select the link on this page that matches the specified category and category value
+  # (eg. category value 'L' for category type 'Fit')
+  #################################################################################################
+  def select_value_from_category(category_type, category_value)
+    # use a hash to store the category types and the names of the corresponding 'div' element's 'id' attribute
+    category_id_field = {fit: 'whats-your-fit', size: 'casual-shirt-size', colour: 'your-shirt-colour', range: 'your-shirt-range'}
+
+    # Find and then click the link that matches the 'category type' and 'category_value'
+    within ('div#' + %Q(#{category_id_field[category_type]})) do
+      within ('ul.navList') do
+        @page.find(:css, %Q(a[title="#{category_value}"])).click
+      end
+    end
+    # original statement below becomes too complicated as a 'find' one liner
+    #selection_link = @page.find(:css, 'div#' + %Q(#{category_id_field[category_type]} ul.navList a[title="#{category_value}"]))
+    #selection_link.click
+  end
+
+  ###########################################################################################################################################
+  # find a product item's category codes and verify they are correct (for the filter(s) currently selected on the casual shirts product page)
+  # the comparison is done with the data in the hashes (eg. FIT_LIST, COLOUR_LIST) defined in common_modules.rb
+  ###########################################################################################################################################
+  def find_items_category_codes(category_codes, code_type)
+    code_found = FALSE
+	  case
+      when code_type == 'size'
+        list = SIZE_LIST
+	    when code_type == "fit"
+        list = FIT_LIST
+	    when code_type == "colour"
+        list = COLOUR_LIST
+	    when code_type == "range"
+        list = RANGE_LIST
+	    else
+	      return code_found
+	  end
+	
+    category_codes.each do |code|
+      list.select { |key,val| code_found = TRUE if (list[key] == code) }
+	  end
+    return code_found
+  end
+
+end

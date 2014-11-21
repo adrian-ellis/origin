@@ -1,0 +1,198 @@
+require_relative '../lib/common_modules'
+
+class FormalShirtsPage
+  # include common methods for page object classes (located in common_modules.rb)
+  include CommonProductPageElements
+  include CommonProductPageMethods
+  include CommonPageMethods
+  include Waiting
+  include Lightboxes
+  include TeliumTags
+
+  #######################################################################
+  # define page elements/methods on the formal shirts product page
+  #######################################################################
+  def initialize(browser, country)
+    @browser = browser
+    @country = country
+
+    # Load the Formal Shirts Product page for the given country when a new instance of this 'page object' is created (if the page is not already loaded).
+    # We do this here because, it's possible to load the Formal Shirts Product from the top level menus on most other ctshirts website pages.
+    case country
+      when GB
+        visit_product_page(FORMAL_SHIRTS, country) if !@browser.url.include? "formal-shirts"
+      when US
+        visit_product_page(FORMAL_SHIRTS, country) if !@browser.url.include? "mens-dress-shirts"
+      when AU
+        visit_product_page(FORMAL_SHIRTS, country) if !@browser.url.include? "mens-business-shirts"
+      when DE
+        visit_product_page(FORMAL_SHIRTS, country) if !@browser.url.include? "herren-businesshemden"
+      else
+    end
+  end
+
+  # find the 'Collar ize' links within the left hand navigation controls on the formal shirts product page
+  def collar_size_links
+    if @country != DE
+      @browser.div(:id => "collar").ul(:class => "navList").links(:href => ALL_SHIRTS_IDENTIFIER_LANG_EN)
+    else
+      @browser.div(:id => "collar").ul(:class => "navList").links(:href => ALL_SHIRTS_IDENTIFIER_LANG_DE)
+    end
+  end
+
+  # Select 'collar size' within the left hand navigation controls
+  def select_collar_size(collar_size)
+    if @country != DE
+      @browser.div(:id => "collar").ul(:class => "navList").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_EN, :title => collar_size).when_present.click
+    else
+      @browser.div(:id => "collar").ul(:class => "navList").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_DE, :title => collar_size).when_present.click
+    end
+  end
+
+  # find the 'Sleeve length' links within the left hand navigation controls on the formal shirts product page
+  def sleeve_length_links
+    if @country != DE
+      @browser.div(:id => "slvLnth").ul(:class => "navList").links(:href => ALL_SHIRTS_IDENTIFIER_LANG_EN)
+    else
+      @browser.div(:id => "slvLnth").ul(:class => "navList").links(:href => ALL_SHIRTS_IDENTIFIER_LANG_DE)
+    end
+  end
+
+  # Select 'sleeve length' within the left hand navigation controls
+  def select_sleeve_length(sleeve_length)
+    if @country != DE
+      @browser.div(:id => "slvLnth").ul(:class => "navList").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_EN, :title => sleeve_length).when_present.click
+    else
+      @browser.div(:id => "slvLnth").ul(:class => "navList").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_DE, :title => sleeve_length).when_present.click
+    end
+  end
+
+  def view_shirts_list
+    @browser.div(:id => 'ctl00_contentBody_Banners').div(:class => 'figure').area(:href => /viewallshirts/).when_present.click
+  end
+
+  def department_banner
+    @browser.div(:id => 'ctl00_contentBody_Banners').exists?
+  end
+
+  #-----------------------------------------------------------------------------------
+  ####################################################################################
+  # define utility methods
+  ####################################################################################
+  #-----------------------------------------------------------------------------------
+
+  ####################################################################################
+  # Load formal shirt product item page (given the product item and its size)
+  ####################################################################################
+  def load_formal_shirt_detail_page(product_item_code)
+    if department_banner
+      # In the Case of a PRODUCT DEPARTMENT PAGE: Select the 'View all' within the banner
+      prev_url = @browser.url
+      view_shirts_list
+    end
+
+    # After the first Product Listing Page loads, select the 'View all' link so that all shirts are displayed on one page
+    wait_until_element_present(first_shirt_item_link)
+    if found_show_all
+      prev_url = @browser.url
+      show_all.click
+    else
+      fail "ERROR: Cannot find \'Show All\' or \'Show 15 Per Page\' links" if !found_show_15_items
+    end
+
+    # After selecting 'show all', we must wait the page reloads (ie. until browser url changes). Only then can we search for specific elements on the page.
+    wait_until_page_loaded("Formal Shirts - Show All", prev_url)
+    wait_until_element_present(first_shirt_item_link)
+
+    # Wait until the item with item code 'product_item_code' appears on the formal shirt product page. If the item cannot be found then this test fails.
+    time_secs = 0
+    while time_secs < PAGE_TIMEOUT_SECS
+      link = shirt_item_link(product_item_code)
+      break if link.exists?
+      sleep 1
+      time_secs+=1
+      puts "\nINFO: Waited \'#{time_secs}\' secs for item \'#{product_item_code}\' to be displayed on formal shirts product page"
+    end
+    fail "\nERROR: Check the \'scenario\' data table for this \'feature\' against formal shirts available on the ctshirts website. The item code is set to \'#{product_item_code}\' and cannot be found." if !link.exists?
+
+    # click on link to this formal shirt, then return the formal shirt detail page object (as the browser should now be loading this page)
+    link.click
+
+    # In 'watir-classic' / IE there is sometimes a problem performing an action (such as clicking on a link) because the focus is sometimes set to another area in the browser (eg. the address bar).
+    # But by clicking on the link again the focus is now set to the link.
+    time_secs = 0
+    while time_secs < PAGE_TIMEOUT_SECS
+      break if @browser.url.include? product_item_code
+      sleep 1
+      time_secs+=1
+      puts "\nINFO: Waited \'#{time_secs}\' secs for the formal shirts detail page to be displayed for \'#{product_item_code}\'"
+      link.click if @browser_str == 'ie'
+    end
+    fail "ERROR: Detail Page for Formal Shirt #{product_item_code} failed to load after #{PAGE_TIMEOUT_SECS} secs" if !@browser.url.include? product_item_code
+
+    return FormalShirtsItemDetailPage.new(@browser,@country)
+  end
+
+  #################################################################################################
+  # find the link on this webpage that matches the scenario's input data for the specified category
+  #(eg. category value 'L' for category type 'Fit'), then click on this link.
+  #################################################################################################
+  def find_and_select_nav_links(category_type, category_value)
+    code_found = FALSE
+
+    wait_until_element_present(first_colour_link)
+
+    case
+	    when category_type == "COLLAR_SIZE"
+	      category_links = collar_size_links
+	    when category_type == "FIT"
+	      category_links = fit_links
+	    when category_type == "COLOUR"
+	      category_links = colour_links
+      else
+	      return code_found
+	  end
+    category_links.each do |link|
+      if link.title.downcase.strip == category_value.downcase.strip
+        prev_url = @browser.url
+        link.click
+        wait_until_page_loaded("Formal Shirts - Show All", prev_url)
+        code_found = TRUE
+	      break
+	    end
+    end
+    return code_found
+  end
+
+  ###########################################################################################################################################
+  # find a product item's category codes and verify they are correct (for the filter(s) currently selected on the formal shirts product page)
+  # the comparison is done with the data in the hashes (eg. FIT_LIST, COLLAR_SIZE) defined in common_modules.rb
+  ###########################################################################################################################################
+  def find_items_category_codes(category_codes, code_type)
+    code_found = FALSE
+    single_category_code = FALSE
+    wait_until_element_present(first_colour_link)
+    case
+	    when code_type == "FIT"
+        list = FIT_LIST
+	    when code_type == "COLOUR"
+        list = COLOUR_LIST
+	    when code_type == "COLLAR_SIZE"
+        list = COLLAR_SIZE_LIST
+        single_category_code = TRUE
+	    else
+	      return code_found
+    end
+
+    # Note: if category code is a single element array we CANNOT use the "each" method
+    if single_category_code != TRUE
+      category_codes.each do |code|
+        list.select { |key,val| code_found = TRUE if (list[key] == code) }
+      end
+    else
+      list.select { |key,val| code_found = TRUE if (list[key] == category_codes) }
+    end
+
+    return code_found
+  end
+end

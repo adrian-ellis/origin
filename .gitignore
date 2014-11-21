@@ -1,0 +1,8 @@
+.idea
+my*.*
+screenshots
+results
+cucumber_opts
+*.html
+Gemfile.lock
+*.txt

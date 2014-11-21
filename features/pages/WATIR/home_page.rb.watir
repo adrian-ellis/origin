@@ -1,0 +1,100 @@
+require "#{Dir.pwd}/features/lib/common_modules"
+
+class HomePage
+  # include common methods for page object classes (located in common_modules.rb)
+  include CommonPageMethods
+  include Waiting
+  include TeliumTags
+
+  #######################################################################
+  # define page objects on the "Home" page
+  #######################################################################
+  def initialize(browser,country)
+    @browser = browser
+    @country = country
+    @uk_home_page       = BASE_URL + "/default.aspx?q=gbpdefault|||||||||||||||"
+    @usa_home_page      = BASE_URL + "/default.aspx?q=usddefault|||||||||||||||"
+    @aus_home_page      = BASE_URL + "/default.aspx?q=auddefault|||||||||||||||"
+    @ger_home_page      = BASE_URL + "/default.aspx?q=dmdefault|||||||||||||||"
+
+    # Load the Home page for the given country when a new instance of this 'page object' is created (if it's not already loaded).
+    # We do this here because, it's possible to load the Home page from the top level menus on most other ctshirts website pages.
+    case @country
+      when GB
+        visit_homepage if @browser.url != @uk_home_page
+      when US
+        visit_homepage if @browser.url != @usa_home_page
+      when AU
+        visit_homepage if @browser.url != @aus_home_page
+      when DE
+        visit_homepage if @browser.url != @ger_home_page
+      else
+        # the default country is UK if 'country' is incorrectly specified
+        visit_homepage if @browser.url != @uk_home_page
+    end
+  end
+
+  def url
+    @browser.url
+  end
+
+  def login_link
+    @browser.link(:href => /AccountLogin.aspx/)
+  end
+
+  def visit_loginpage
+    login_link.when_present.click #WATIR-WEBDRIVER
+    return LoginPage.new(@browser,@country)
+  end
+
+  def style_hints_and_tips_heading
+    @browser.link(:href => /Style-tips-and-hints/)
+  end  
+  
+  def buy_the_outfit_link
+    @browser.link(:href => /Outfitlisting.aspx/)
+  end
+
+  #############################################################
+  # utility methods
+  #############################################################
+
+  # Wait until the element in question has loaded. This is very useful in the situation where
+  # page elements are loading too slowly (and causing the test to fail as a consequence).
+  def wait_until_element_present(element)
+    element.when_present.exists?
+  end
+
+  # Load Home page dependant on country. Default country is GB.
+  def visit_homepage
+    case @country
+      when AU
+        home_page = @aus_home_page
+      when US
+        home_page = @usa_home_page
+      when DE
+        home_page = @ger_home_page
+      when GB
+        home_page = @uk_home_page
+      else
+        home_page = @uk_home_page
+    end
+    prev_url = @browser.url
+    @browser.goto home_page
+
+    # wait for home page to load (before searching for any page elements)
+    wait_until_page_loaded('Home page', prev_url)
+    fail "ERROR: Server has rejected browser's request. Search Results Error Page has loaded instead." if @browser.url.include? SEARCH_RESULTS_ERROR
+
+    # If the 'Your Location' lightbox appears because we loaded a different country's website (ie. not GB), select the country link from the lightbox,
+    # and wait for the page to load
+    # NOTE: DOESNT WORK IN 'IE' AS div(:id => 'country-popup') contains a reference to a JQuery that needs to run instead of a link to click on !!!!!
+    if @browser.div(:id => 'country-popup').exists?
+      prev_url = @browser.url
+      country_text = "/Country/Change/".concat(@country)
+      @browser.div(:id => 'country-popup').link(:href => country_text).when_present.click
+      wait_until_page_loaded('Home page - Country specific', prev_url)
+    end
+  end
+
+end

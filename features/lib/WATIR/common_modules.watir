@@ -1,0 +1,882 @@
+module JsonDataQuerying
+  def find_json_obj(data,arg)
+    JsonPath.on(data,%Q($..#{arg}))
+  end
+
+  def find_json_objs(data,args)
+    hash = {}
+    return nil if !args.is_a? Array
+
+    # Create a hash containing the results of the JsonPath query. The name of the JSON object we're searching for is 'arg' (the Key), and the JSON object
+    # found is 'result' (the Value)
+    args.each { |arg| result = JsonPath.on(data,%Q($..#{arg})); hash.merge!(arg => result) }
+    return hash
+  end
+end
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+######################################################################################################################################################
+# MODULE CONTAINING Methods to used by stepdefs to verify (arg == TRUE)
+######################################################################################################################################################
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+module BooleanExpectations
+  def Expect(arg)
+    expect(arg).to be TRUE
+  end
+
+  def Not_Expect(arg)
+    expect(arg).to be FALSE
+  end
+end
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+######################################################################################################################################################
+# MODULE CONTAINING Methods to used by env.rb.watir
+######################################################################################################################################################
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+module EnvMethods
+  # Construct a filename (used for naming test results files) based on the Scenario name and timestamp
+  def scenario_name(scenario)
+    # If this is a scenario outline (with associated scenario data in table form), the scenario name is a combination of outline name and scenario data
+    if scenario.instance_of?(Cucumber::Ast::OutlineTable::ExampleRow)
+      scenario_name = scenario.scenario_outline.name.gsub(/[^\w\-]/, ' ')     # replace any non-word characters with spaces
+      scenario_name += "-Example#{scenario.name.gsub(/\s*\|\s*/, '-')}".chop  # replace the ' | ' with '-' characters
+    else
+      scenario_name = scenario.name.gsub(/[^\w\-]/, ' ')
+    end
+
+    # Get current date and time
+    time = Time.now.strftime("%Y-%m-%d-%H%M%S")
+
+    # Return filename. Note that Windows has file name limits so limit the length of filename we return
+    return "#{time}-#{scenario_name}".slice(0, 250).gsub(/[\,\/]/, '.')
+  end
+end
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+######################################################################################################################################################
+# MODULE CONTAINING Methods to allow waiting for pages and page elements to load
+######################################################################################################################################################
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+module Waiting
+  # Verify that the specified element exists on the page (ie. within the DOM).
+  # If the element can no longer be found within the DOM then catch the exception thrown,
+  # and then try to locate it again (ie. with a new reference to the element)
+  # Fail if not found within time limit PAGE_ELEMENT_TIMEOUT_SECS.
+  def wait_until_element_present(element)
+    Decimal time_secs = 0
+    present = FALSE
+    while !present
+      begin
+        fail "ERROR: Could not locate element within #{PAGE_ELEMENT_TIMEOUT_SECS} secs" if time_secs >= PAGE_ELEMENT_TIMEOUT_SECS
+        present = element.exists?
+      rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
+        puts "Trapped Exception: #{e} : Retrying"
+        sleep 0.5; time_secs+=0.5
+        retry
+      rescue Selenium::WebDriver::Error::ObsoleteElementError => e
+        puts "Trapped Exception: #{e} : Retrying"
+        sleep 0.5; time_secs+=0.5
+        retry
+      end
+      sleep 0.5; time_secs+=0.5
+    end
+  end
+
+  # Wait until the element in question has loaded. This is very useful in the situation where
+  # page elements are loading too slowly (and causing the test to fail as a consequence).
+#  def wait_until_element_present(element)
+#    element.when_present(PAGE_ELEMENT_TIMEOUT_SECS).exists?
+#  end
+
+  # Wait until the page url changes from its initial string value. This is useful when we have to wait
+  # for the page to be reloaded before searching for specific elements on the page. Although WATIR should
+  # wait for the page to load beforehand, it's an additional safety factor.
+  def wait_until_page_loaded(page_name, prev_url)
+    time_secs = 0
+    while @browser.url == prev_url
+      break if time_secs > PAGE_TIMEOUT_SECS
+      sleep 1
+      time_secs+=1
+    end
+    fail "ERROR: Page #{page_name} failed to load after #{PAGE_TIMEOUT_SECS} secs" if @browser.url == prev_url
+  end
+
+  #########################################################################################################
+  # EXPERIMENTS WITH THESE METHODS THAT USE BLOCKS to retry locating a given element after a timeout occurs
+  #########################################################################################################
+  def retry_if_timed_out(waittime)
+    begin
+      Timeout::timeout(waittime)  do
+        yield
+      end
+    rescue Timeout::Error => e
+      puts "Page/Element load timed out: #{e} : retrying"
+      retry
+    end
+  end
+
+  #########################################################################################################
+  # EXPERIMENTS WITH THESE METHODS THAT USE BLOCKS to retry locating a given element after a timeout occurs
+  #########################################################################################################
+  def wait_until(time)
+    begin
+      Timeout::timeout(time) do
+        yield
+      end
+    rescue Timeout::Error => e
+      puts "Statement timed out: #{e} : retrying"
+      retry
+    rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
+      puts "Error locating element: #{e} : retrying"
+      retry
+    rescue Selenium::WebDriver::Error::ObsoleteElementError => e
+      puts "Error locating element: #{e} : retrying"
+      retry
+    end
+  end
+
+end
+
+
+########################################################################################################################################################################
+################################################ All Constants needed by MODULE CommonPageMethods ######################################################################
+########################################################################################################################################################################
+########################################################################################################################################################################
+# Item identifiers for all men's shirts (ie. casual or formal) in both english and german languages. On both these shirts product pages these help to identify:-
+#   1) the left navigation links
+#   2) the shirt item thumbnail links
+ALL_SHIRTS_IDENTIFIER_LANG_EN    = /men.*s-shirts/
+ALL_SHIRTS_IDENTIFIER_LANG_DE    = /herren-hemden/
+
+# Top (main menu) navigation control identifiers for casual and formal men's shirts for all countries
+VIEW_ALL_SHIRTS_LANG_EN    = 'View all shirts'
+VIEW_ALL_SHIRTS_LANG_DE    = 'Alle Hemden'
+
+FORMAL_SHIRT_IDENTIFIER_GB = /formal-shirts/
+FORMAL_SHIRT_IDENTIFIER_US = /dress-shirts/
+FORMAL_SHIRT_IDENTIFIER_AU = /business-shirts/
+FORMAL_SHIRT_IDENTIFIER_DE = /herren-businesshemden/
+
+CASUAL_SHIRT_IDENTIFIER_GB = /casual-shirts/
+CASUAL_SHIRT_IDENTIFIER_US = /sport-and-casual-shirts/
+CASUAL_SHIRT_IDENTIFIER_AU = /casual-shirts/
+CASUAL_SHIRT_IDENTIFIER_DE  = /herren-freizeithemden/
+
+SEARCH_RESULTS_URL_IDENTIFIER    = "productlisting.aspx?q="
+SEARCH_NO_RESULTS_URL_IDENTIFIER = "SearchNoResults.aspx?term="
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+########################################################################################################################################################################
+# MODULE CONTAINING Methods which are common to all Pages
+########################################################################################################################################################################
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+module CommonPageMethods
+  def url
+    @browser.url
+  end
+
+  def top_nav_homepage_link
+      @browser.div(:class => "nav", :id => "menu").link(:class => 'prod_group').span(:text => 'Home')
+  end
+
+  # the Top Menu navigation link to Casual Shirts page
+  def top_nav_casual_shirts_link
+    case @country
+      when GB
+        @browser.div(:class => "nav", :id => "menu").div(:class => "inner").link(:href => CASUAL_SHIRT_IDENTIFIER_GB)
+      when US
+        @browser.div(:class => "nav", :id => "menu").div(:class => "inner").link(:href => CASUAL_SHIRT_IDENTIFIER_US)
+      when AU
+        @browser.div(:class => "nav", :id => "menu").div(:class => "inner").link(:href => CASUAL_SHIRT_IDENTIFIER_AU)
+      when DE
+        @browser.div(:class => "nav", :id => "menu").div(:class => "inner").link(:href => CASUAL_SHIRT_IDENTIFIER_DE)
+      else
+    end
+  end
+
+  # the Top Menu navigation link to Formal Shirts page
+  def top_nav_formal_shirts_link
+    case @country
+      when GB
+        @browser.div(:class => "nav", :id => "menu").div(:class => "inner").link(:href => FORMAL_SHIRT_IDENTIFIER_GB)
+      when US
+        @browser.div(:class => "nav", :id => "menu").div(:class => "inner").link(:href => FORMAL_SHIRT_IDENTIFIER_US)
+      when AU
+        @browser.div(:class => "nav", :id => "menu").div(:class => "inner").link(:href => FORMAL_SHIRT_IDENTIFIER_AU)
+      when DE
+        @browser.div(:class => "nav", :id => "menu").div(:class => "inner").link(:href => FORMAL_SHIRT_IDENTIFIER_DE)
+      else
+    end
+  end
+
+  # the Top Menu navigation link to Formal Shirts page
+  def top_nav_all_shirts_link
+    if @country != DE
+      @browser.div(:class => "nav", :id => "menu").div(:class => "inner").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_EN, :text => VIEW_ALL_SHIRTS_LANG_EN)
+    else
+      @browser.div(:class => "nav", :id => "menu").div(:class => "inner").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_DE, :text => VIEW_ALL_SHIRTS_LANG_DE)
+    end
+  end
+
+  def navigate_to_home_page(country)
+    @country = country
+    prev_url = @browser.url
+    top_nav_homepage_link.fire_event("onclick")
+
+    # wait for home page to load
+    wait_until_page_loaded(prev_url,"Home Page")
+    return HomePage.new(@browser,country)
+  end
+
+  def goto_casual_shirts_product_page(country)
+    @country = country
+    prev_url = @browser.url
+    top_nav_casual_shirts_link.fire_event("onclick")
+
+    # wait for casual shirts page to load
+    wait_until_page_loaded(prev_url,"Casual Shirts Product Page")
+    return CasualShirtsPage.new(@browser,country)
+  end
+
+  def goto_formal_shirts_product_page(country)
+    @country = country
+    prev_url = @browser.url
+    top_nav_formal_shirts_link.fire_event("onclick")
+
+    # wait for formal shirts page to load
+    wait_until_page_loaded(prev_url,"Formal Shirts Product Page")
+    return FormalShirtsPage.new(@browser,country)
+  end
+
+  def goto_all_shirts_product_page(country)
+    @country = country
+    prev_url = @browser.url
+    top_nav_all_shirts_link.fire_event("onclick")
+
+    # wait for formal shirts page to load
+    wait_until_page_loaded(prev_url,"All Shirts Product Page")
+    return AllShirtsPage.new(@browser,country)
+  end
+
+  # A 'span' element that contains the number (eg. 2) of items in the Basket
+  def basket_items_qty_field
+    @browser.div(:id => "basket_nav").link(:href => BASKET_LINK_URL).span(:id => "miniBKQty")
+  end
+
+  ##########################################################################################
+  # Get the number of items in the basket (returned as an integer)
+  ##########################################################################################
+  def get_number_of_items_in_basket
+    @result = basket_items_qty_field.text
+    result_is_integer = (@result.match /\d+/) && (!@result.match /\D+/)
+    if result_is_integer != nil
+      return @result.to_i
+    else
+      puts "\nERROR: Cannot find the number of items in the Basket"
+      result_is_integer.should_not == nil
+    end
+  end
+
+  ###########################################################################################################################################################
+  # Loads the Basket page (Note: the country specified must be the same as the current ctshirts website country)
+  ###########################################################################################################################################################
+  def visit_checkout(country)
+    prev_url = @browser.url
+    checkout_link.when_present.click
+    wait_until_page_loaded("Basket Page", prev_url)
+    return BasketPage.new(@browser,country)
+  end
+
+  def checkout_link
+    @browser.link(:href => BASKET_LINK_URL)
+  end
+
+  ###########################################################################################################################################################
+  # Opens the 'Country' lightbox, and loads the ctshirts home page for the specified country (eg. 'GE' for the German website)
+  ###########################################################################################################################################################
+  def change_country(country)
+    all_countries = ['GB', 'US', 'AU', 'GE']
+    fail "ERROR: Cannot navigate to website for country #{country}. Only 'GB', 'US', 'AU' and 'GE' are valid options. Please check this scenario's data table." if !all_countries.include? country
+
+    # Opens the 'Country' lightbox
+    @browser.link(:id => "ctl00_contentFooter_ctlMegaFooter_ChangeCountry").when_present.click
+
+    country_text = "/Country/Change/".concat(country)
+    @browser.div(:id => 'country-popup').link(:href => country_text).when_present.click
+  end
+
+  #---------------------------------------------------------------------------------------------------------------------
+  ######################################################################################################################
+  # Methods needed for the 'Search' (for products) facility available at the top of each page
+  ######################################################################################################################
+  #---------------------------------------------------------------------------------------------------------------------
+
+  ##########################################################################################
+  # Enter the specified text into the 'Search' text box at the top of the page
+  ##########################################################################################
+  def search_text_field
+    @browser.text_field(:id => "search_term")
+  end
+
+  def search_text=(text)
+    @browser.text_field(:id => "search_term").when_present.set(text)
+  end
+
+  ##########################################################################################
+  # 'Search' button next to the 'Search' text box at the top of the page
+  ##########################################################################################
+  def submit_search
+    @browser.button(:id => "ctl00_contentHeader_ctlHeader1_searchButton").when_present.click
+  end
+
+  ##########################################################################################
+  # Searches for the specified text which MUST NOT be a product item code (SKU)
+  ##########################################################################################
+  def search_for_text(text)
+    fail "INTERNAL ERROR: In method call to 'search_for_text' no text was entered" if text == nil
+    wait_until_element_present(search_text_field)
+    self.search_text = text
+    submit_search
+    if @browser.url.include? SEARCH_RESULTS_URL_IDENTIFIER
+      return SearchResultsPage.new(@browser,@country)
+    elsif @browser.url.include? SEARCH_NO_RESULTS_URL_IDENTIFIER
+      return SearchNoResultsPage.new(@browser,@country)
+    else
+      fail "ERROR: Product Search for '#{text}' did not return the URL for either the 'SearchResults' or the 'SearchNoResults' page"
+    end
+  end
+
+  ##########################################################################################
+  # Searches for the specified text which MUST be a formal shirt item code (SKU)
+  ##########################################################################################
+  def search_for_formal_shirt(item_code)
+    fail "INTERNAL ERROR: In method call to 'search_for_formal_shirt' no Item Code (SKU) was specified" if item_code == nil
+    wait_until_element_present(search_text_field)
+    self.search_text = item_code
+    submit_search
+    fail "\nERROR: Check the 'scenario' data table for this 'feature'. The formal shirt item code is set to '#{item_code}' and cannot be found." if @browser.url.include? SEARCH_NO_RESULTS_URL_IDENTIFIER
+    return FormalShirtsItemDetailPage.new(@browser,@country)
+  end
+
+  ##########################################################################################
+  # searches for the specified text which MUST be a casual shirt item code (SKU)
+  ##########################################################################################
+  def search_for_casual_shirt(item_code)
+    fail "INTERNAL ERROR: In method call to 'search_for_casual_shirt' no Item Code (SKU) was specified" if item_code == nil
+    wait_until_element_present(search_text_field)
+    self.search_text = item_code
+    submit_search
+    fail "\nERROR: Check the 'scenario' data table for this 'feature'. The casual shirt item code is set to '#{item_code}' and cannot be found." if @browser.url.include? SEARCH_NO_RESULTS_URL_IDENTIFIER
+    return CasualShirtsItemDetailPage.new(@browser,@country)
+  end
+end
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+######################################################################################################################################################
+# MODULE CONTAINING Methods returning page elements common to both Casual and Formal Product Pages
+######################################################################################################################################################
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+module CommonProductPageElements
+  # the 'Fit' links within the left hand navigation controls on the casual shirts product page
+  def fit_links
+    if @country != DE
+      @browser.div(:id => "colSize").ul(:class => "navList").links(:href => ALL_SHIRTS_IDENTIFIER_LANG_EN)
+    else
+      @browser.div(:id => "colSize").ul(:class => "navList").links(:href => ALL_SHIRTS_IDENTIFIER_LANG_DE)
+    end
+  end
+
+  # the 'Colour' links within the left hand navigation controls on the casual shirts product page
+  def colour_links
+    if @country != DE
+      @browser.div(:id => "colour").ul(:class => "navList").links(:href => ALL_SHIRTS_IDENTIFIER_LANG_EN)
+    else
+      @browser.div(:id => "colour").ul(:class => "navList").links(:href => ALL_SHIRTS_IDENTIFIER_LANG_DE)
+    end
+  end
+
+  def first_colour_link
+    if @country != DE
+      @browser.div(:id => "colour").ul(:class => "navList").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_EN)
+    else
+      @browser.div(:id => "colour").ul(:class => "navList").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_DE)
+    end
+  end
+
+  # the 'Range' links within the left hand navigation controls on the casual shirts product page
+  def range_links
+    if @country != DE
+      @browser.div(:id => "Range").ul(:class => "navList").links(:href => ALL_SHIRTS_IDENTIFIER_LANG_EN)
+    else
+      @browser.div(:id => "Range").ul(:class => "navList").links(:href => ALL_SHIRTS_IDENTIFIER_LANG_DE)
+    end
+  end
+
+  # the 'Show all' link at top of the casual shirts product page
+  def show_all
+    if @country != DE
+      @browser.div(:class => "pagination").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_EN, :text => SHOW_ALL)
+    else
+      @browser.div(:class => "pagination").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_DE, :text => SHOW_ALL_LANG_DE)
+    end
+  end
+
+  # the 'Show 15' link at top of the casual shirts product page
+  def show_15
+    if @country != DE
+      @browser.div(:class => "pagination").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_EN, :text => SHOW_15)
+    else
+      @browser.div(:class => "pagination").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_DE, :text => SHOW_15_LANG_DE)
+    end
+  end
+
+  def next_product_page
+    if @country != DE
+      @browser.div(:class => "pagination").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_EN, :text => "Next")
+    else
+      @browser.div(:class => "pagination").link(:href => ALL_SHIRTS_IDENTIFIER_LANG_DE, :text => "weiter")
+    end
+  end
+
+  # the span element that contains the links, heading and pricing information for a clothing item
+  def clothing_item_container_elements
+    @browser.div(:id => "ctl00_contentBody_productListingSection").uls(:class => "teasers")
+  end
+
+  # the (formal or casual) shirt product items displayed within the product listing section
+  def shirt_item_links
+    if @country != DE
+      @browser.div(:id => "ctl00_contentBody_productListingSection").links(:class => "img", :href => ALL_SHIRTS_IDENTIFIER_LANG_EN)
+    else
+      @browser.div(:id => "ctl00_contentBody_productListingSection").links(:class => "img", :href => ALL_SHIRTS_IDENTIFIER_LANG_DE)
+    end
+  end
+
+  def first_shirt_item_link
+    if @country != DE
+      @browser.div(:id => "ctl00_contentBody_productListingSection").link(:class => "img", :href => ALL_SHIRTS_IDENTIFIER_LANG_EN)
+    else
+      @browser.div(:id => "ctl00_contentBody_productListingSection").link(:class => "img", :href => ALL_SHIRTS_IDENTIFIER_LANG_DE)
+    end
+  end
+
+  def shirt_item_link(product_item_code)
+    @browser.div(:id => "ctl00_contentBody_productListingSection").span(:id => /#{product_item_code}/).link(:class => "img", :href => /#{product_item_code}/)
+  end
+
+  # Get the contents of the 'Sorting' options selection box eg. Name (A-Z), Price (lowest)
+  def sort_by_selection_box_option(value)
+    @browser.select_list(:id => "ctl00_contentBody_paging_ddlSortBy").option(:value => value)
+  end
+
+  def sort_by_link(index)
+    @browser.ul(:id => "newList_0").link(:href => /.*/, :index => index)
+  end
+end
+
+
+########################################################################################################################################################################
+################################################ All Constants needed by MODULE CommonProductPage ######################################################################
+########################################################################################################################################################################
+# The indicies delimited by '|' in the (link) URL for each clothing item listed on the webpage.
+INDEX_FOR_STOCK_CODE = 2
+INDEX_FOR_PRICE_CODE = 5
+INDEX_FOR_SIZE_CODE = 6
+INDEX_FOR_OTHER_CATEGORIES = 7
+INDEX_FOR_COLLAR_SIZE_CODE = 9
+INDEX_FOR_SLEEVE_LENGTH = 10
+
+################################################################################################
+# The hashes below represent the category codes that are stored in the database tables
+################################################################################################
+FIT_LIST = { :classic => "381", :slim => "406", :extra_slim => "1861" }
+COLLAR_SIZE_LIST = { :inch14_5 => "14.5", :inch15 => "15", :inch15_5 => "15.5", :inch16 => "16", :inch16_5 => "16.5", :inch17 => "17", :inch17_5 => "17.5", :inch18 => "18", :inch19 => "19", :inch20 => "20" }
+SLEEVE_LENGTH_LIST = { :inch32 => "32", :inch33 => "33", :inch34 => "34", :inch35 => "35", :inch36 => "36", :inch37 => "37", :inch38 => "38" }
+PRICE_LIST = { :gbp20_25 => "20 to 24.99", :gbp25_30 => "25 to 29.99", :gbp30_40 => "30 to 39.99", :gbp40_50 => "40 to 49.99", :gbp50_100 => "50 to 99.99" }
+COLOUR_LIST = { :blue => "416", :green => "441", :multicolour => "456", :orange => "471", :pink => "476", :purple => "451", :reds => "481", :stone => "3606", :white => "491", :yellow => "496" }
+RANGE_LIST = { :washed_oxford => "2186", :non_iron_casual => "3496", :jermyn_street_weekend => "4202", :slim_fit_oxford => "4572", :soft_twill => "3506", :summer_checks_and_stripes => "3761", :washed_favourite => "2176", :all_other_ranges => "3511" }
+MATERIAL_LIST = { :pcnt100_cotton => "41", :non_iron_cotton => "1606", :linen_mix => "66" }
+DESIGN_LIST = { :check => "146", :gingham_check => "3566", :plain => "221", :stripe => "236", :bengal_stripes => "unknown" }
+COLLAR_TYPE_LIST = { :button_down => "4257", :classic => "4267" }
+SLEEVE_TYPE_LIST = { :short_sleeve => "4392" }
+CUFF_SLEEVE_LIST = { :short_sleeve => "4427" }
+WEAVE_LIST = { :poplin => "427", :end_on_end => "unknown", :oxford_weave => "4537", :twill => "4227"}
+
+# Country codes
+GB = "GB"
+DE = "DE"
+AU = "AU"
+US = "US"
+
+FORMAL_SHIRTS = 'Formal Shirts'
+CASUAL_SHIRTS = 'Casual Shirts'
+
+# Formal Shirt Product Page URL's for each country
+UK_FORMAL_PRODUCT_PAGE  = BASE_URL + "/mens-shirts/mens-formal-shirts?q=gbpdefault|||||||||||||||"
+USA_FORMAL_PRODUCT_PAGE = BASE_URL + "/mens-shirts/mens-dress-shirts?q=usddefault|||||||||||||||"
+AUS_FORMAL_PRODUCT_PAGE = BASE_URL + "/mens-shirts/mens-business-shirts?q=auddefault|||||||||||||||"
+GER_FORMAL_PRODUCT_PAGE = BASE_URL + "/herren-hemden/herren-businesshemden?q=dmdefault|||||||||||||||"
+
+# Casual Shirt Product Page URL's for each country
+UK_CASUAL_SHIRTS_PRODUCT_PAGE  = BASE_URL + "/mens-shirts/mens-casual-shirts?q=gbpdefault|||||||||||||||"
+USA_CASUAL_SHIRTS_PRODUCT_PAGE = BASE_URL + "/mens-shirts/mens-sport-and-casual-shirts?q=usddefault|||||||||||||||"
+AUS_CASUAL_SHIRTS_PRODUCT_PAGE = BASE_URL + "/mens-shirts/mens-casual-shirts?q=auddefault|||||||||||||||"
+GER_CASUAL_SHIRTS_PRODUCT_PAGE = BASE_URL + "/herren-hemden/herren-freizeithemden?q=dmdefault|||||||||||||||"
+
+# Page result links
+SHOW_ALL         = "Show all"
+SHOW_15          = "Show 15 per page"
+NEXT             = "Next"
+SHOW_ALL_LANG_DE = "Alle anzeigen"
+SHOW_15_LANG_DE  = "Zeige 15 pro Seite"
+NEXT_LANG_DE     = "weiter"
+
+NUMBER_OF_FIRST_ROW_ITEMS = 3
+
+# Search Results Error Page 'SearchNoResults.aspx' name
+SEARCH_RESULTS_ERROR = "SearchNoResults"
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+########################################################################################################################################################################
+# MODULE CONTAINING Methods which call the page object elements defined on the Casual and Formal Shirts Product Pages
+########################################################################################################################################################################
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+module CommonProductPageMethods
+  # Load product page dependant on country. Default country is GB.
+  def visit_product_page(product_type, country)
+    case
+      when (country == AU) && (product_type == CASUAL_SHIRTS)
+        product_page = AUS_CASUAL_SHIRTS_PRODUCT_PAGE
+      when (country == AU) && (product_type == FORMAL_SHIRTS)
+        product_page = AUS_FORMAL_PRODUCT_PAGE
+      when (country == US) && (product_type == CASUAL_SHIRTS)
+        product_page = USA_CASUAL_SHIRTS_PRODUCT_PAGE
+      when (country == US) && (product_type == FORMAL_SHIRTS)
+        product_page = USA_FORMAL_PRODUCT_PAGE
+      when (country == DE) && (product_type == CASUAL_SHIRTS)
+        product_page = GER_CASUAL_SHIRTS_PRODUCT_PAGE
+      when (country == DE) && (product_type == FORMAL_SHIRTS)
+        product_page = GER_FORMAL_PRODUCT_PAGE
+      when (country == GB) && (product_type == CASUAL_SHIRTS)
+        product_page = UK_CASUAL_SHIRTS_PRODUCT_PAGE
+      when (country == GB) && (product_type == FORMAL_SHIRTS)
+        product_page = UK_FORMAL_PRODUCT_PAGE
+      else
+        fail "INTERNAL ERROR: Country '#{country}' and/or product type '#{product_type}' are incorrectly specified in call to method 'visit_product_page'"
+    end
+    @browser.goto product_page
+
+    # wait for shirts product page to load (before searching for any page elements)
+    time_secs = 0
+    while time_secs <= PAGE_TIMEOUT_SECS
+      fail "ERROR: Server has rejected browser's request. The No Search Results Error Page has loaded instead." if @browser.url.include? SEARCH_RESULTS_ERROR
+      fail "ERROR: Product page '#{product_page}' failed to load within #{PAGE_TIMEOUT_SECS} secs" if time_secs == PAGE_TIMEOUT_SECS
+      break if @browser.url == product_page
+      sleep 1
+      time_secs+=1
+    end
+    wait_until_element_present(first_shirt_item_link)
+  end
+
+  # Get the item codes (SKU's) for the top row of product items
+  def get_top_row_items
+    top_row_items = []
+
+    shirt_item_links.each do |link|
+      item_codes_from_url = link.href.split "|"
+      item_product_code = item_codes_from_url[INDEX_FOR_STOCK_CODE]
+      top_row_items.push(item_product_code)
+      break if top_row_items.length == NUMBER_OF_FIRST_ROW_ITEMS
+    end
+    return top_row_items
+  end
+
+  # Find the 'Show all' product items link
+  def found_show_all
+    show_all.exists?
+  end
+
+  # Show 15 product items on one page (note this is default)
+  def found_show_15_items
+    show_15.exists?
+  end
+
+  # Find the link to navigate to the next product page
+  def found_next_product_page
+    next_product_page.exists?
+  end
+
+  def select_next_product_page
+    next_product_page.click
+  end
+
+  def add_to_basket
+    add_to_basket_button.click
+  end
+end
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+########################################################################################################################################################################
+# MODULE CONTAINING Methods needed for lightboxes (popups) on ctshirts web pages
+########################################################################################################################################################################
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+module Lightboxes
+  #############################################################
+  # fries popup/lightbox
+  #############################################################
+
+  # fries popup dialog
+  def fries_popup
+    @browser.div(:id => "overlay_container", :class => "modal").div(:class => "fries_popup")
+  end
+
+  # fries popup 'close' link
+  def close_fries_link
+    fries_popup.span(:class => "close").link(:href => "#")
+  end
+
+  # fries link that loads the page displaying the shirts in the offer
+  def fries_offer_link
+    fries_popup.link(:class => "fries_cta", :href => /Lightboxlink/)
+  end
+
+  # main paragraph in the fries dialog
+  def fries_main_paragraph
+    fries_popup.p(:class => /.*/, :index => 0)
+  end
+
+  # lower paragraph in the fries dialog
+  def fries_lower_paragraph
+    fries_popup.p(:class => "last")
+  end
+
+  #############################################################
+  # website feedback popup
+  #############################################################
+
+  # root element of the popup
+  def feedback_popup
+    @browser.div(:id => "layer_main_content")
+  end
+
+  # 'no thanks' button
+  def no_thanks_button
+    feedback_popup.div(:id => "layer_buttons").button(:id => "nothanks")
+  end
+
+  def yes_please_button
+    feedback_popup.div(:id => "layer_buttons").button(:id => "yesplease")
+  end
+end
+
+
+###############################################################################################################################################################################
+################################################ 'Page Type' and "Currency Type" Constants needed by MODULE TeliumTags ########################################################
+###############################################################################################################################################################################
+PAGE_TYPE = { "Default" => 0, "Home" => 1, "AccountCredit" => 2, "AccountLogin" => 3, "AddressBook" => 4, "Basket" => 5, "Confirm" => 6, "Content" => 7, "Delivery" => 8,
+"GiftVoucherEmail" => 9, "GiftVoucherPaper" =>	10, "GiftVoucherPreview" => 11, "Login" => 12, "OrderConfirmed" => 13, "OrderHistory" => 14, "OutfitDetail" => 15,
+"OutfitListing" => 16, "Payment" => 17, "Preferences" => 18, "ProductCategory" => 19, "ProductDepartment" => 20, "ProductDetail" => 21, "ProductListing" => 22,
+"RequestCatalogue" => 23, "Search" => 24, "SearchNoResult" => 25, "ShortList" => 26 }
+
+
+COUNTRY_CURRENCY = {"GB" => "GBP", "US" => "USD", "AU" => "AUD", "DE" => "EUR"}
+PROPER_ITEM_NAME_COMPARISON = TRUE
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+########################################################################################################################################################################
+# MODULE CONTAINING Telium tag processing methods needed by page object classes ie. in order to read/validate the utag_data javascript embedded in all ctshirts webpages
+########################################################################################################################################################################
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+module TeliumTags
+  def javascript_scripts
+    @browser.scripts(:type => /javascript/)
+  end
+
+  def get_utag_javascript_variables(user_logged_in, page_type)
+    utag_hash = {}
+    tmp_array = []
+    product_keywords = ['product_sku','product_name','product_unit_price','product_quantity']
+    javascript_text, current_key = ''
+    found_utag = FALSE
+    index = 0
+
+    #############################################################################################################################################################################
+    # 'utag_var_names' array stores the names of parameters (eg. customer_email) in the utag_data javascript code. For details see Branch 1521 and Mark Kneale's email 27/07/13.
+    # These parameters are used as the keys in returned 'utag_hash'.
+    # Each web page type (eg. product listing, basket) can have different parameters within the utag_data code.
+    #############################################################################################################################################################################
+    case page_type
+      when PAGE_TYPE['Home']
+        if user_logged_in
+          utag_var_names = ["site_currency","site_region","page_name","page_type","customer_id","customer_email","campaign_source","campaign_url_code"]
+        else
+          utag_var_names = ["site_currency","site_region","page_name","page_type","campaign_source","campaign_url_code"]
+        end
+      when PAGE_TYPE['Preferences']
+        if user_logged_in
+          utag_var_names = ["site_currency","site_region","page_name","page_type","customer_id","customer_email","campaign_source","campaign_url_code"]
+        else
+          utag_var_names = ["site_currency","site_region","page_name","page_type","campaign_source","campaign_url_code"]
+        end
+      when PAGE_TYPE['Basket']
+        if user_logged_in
+          utag_var_names = ["site_currency","site_region","page_name","page_type","customer_id","customer_email","campaign_source","campaign_url_code","product_sku","product_name","product_unit_price","product_quantity"]
+        else
+          utag_var_names = ["site_currency","site_region","page_name","page_type","campaign_source","campaign_url_code","product_sku","product_name","product_unit_price","product_quantity"]
+        end
+      when PAGE_TYPE['ProductListing']
+        if user_logged_in
+          utag_var_names = ["site_currency","site_region","page_name","page_type","customer_id","customer_email","campaign_source","campaign_url_code","product_sku"]
+        else
+          utag_var_names = ["site_currency","site_region","page_name","page_type","campaign_source","campaign_url_code","product_sku"]
+        end
+      when PAGE_TYPE['Search']
+        if user_logged_in
+          utag_var_names = ["site_currency","site_region","page_name","page_type","customer_id","customer_email","campaign_source","campaign_url_code","product_sku","site_search_keyword"]
+        else
+          utag_var_names = ["site_currency","site_region","page_name","page_type","campaign_source","campaign_url_code","product_sku","site_search_keyword"]
+        end
+      when PAGE_TYPE['SearchNoResult']
+        if user_logged_in
+          utag_var_names = ["site_currency","site_region","page_name","page_type","customer_id","customer_email","campaign_source","campaign_url_code","site_search_keyword"]
+        else
+          utag_var_names = ["site_currency","site_region","page_name","page_type","campaign_source","campaign_url_code","site_search_keyword"]
+        end
+      when PAGE_TYPE['OrderConfirmed']
+        if user_logged_in
+          utag_var_names = ["site_currency","site_region","page_name","page_type","customer_id","customer_email","customer_type","campaign_source","campaign_url_code","product_sku","product_name","order_shipping_amount","order_subtotal","order_total","order_id","order_shipping_type","product_unit_price","product_quantity","product_units","esearchvision_count","esearchvision_Basket_Items","esearchvision_event"]
+        else
+          utag_var_names = ["site_currency","site_region","page_name","page_type","customer_type","campaign_source","campaign_url_code","product_sku","product_name","order_shipping_amount","order_subtotal","order_total","order_id","order_shipping_type","product_unit_price","product_quantity","product_units","esearchvision_count","esearchvision_Basket_Items","esearchvision_event"]
+        end
+      else
+        fail "INTERNAL ERROR: Page Type '#{PAGE_TYPE.key(page_type)}' / Page Number '#{page_type}' is incorrect and is not recognised by method 'get_utag_javascript_variables'"
+    end
+
+    ##########################################################################################################################
+    # Find the javascript utag_data code in the current product webpage.
+    ##########################################################################################################################
+    javascript_scripts.each do |script|
+      if script.html.include? "utag_data"
+        javascript_text = script.html
+        found_utag = TRUE
+        break
+      end
+    end
+    fail "ERROR: Cannot find utag_data javascript on #{PAGE_TYPE.key(page_type)} page" if !found_utag
+
+    #########################################################################################################################################################
+    # Split the utag_data code into ('\n' delimited) lines.
+    # Read and process each utag_data line.
+    # Add each key/value pair found to a hash (named 'utag_hash') that will store all the variables/values in the 'utag_data' javascript code.
+    #########################################################################################################################################################
+    js_lines = javascript_text.split "\n"
+    js_lines.each do |line_text|
+      puts "#{line_text}" if ENABLED_LOGGING  # helpful for debugging
+
+      # Remove javascript formatting characters (ie. what we don't want) to clean up the line
+      line = line_text.gsub('[','').gsub('{','').gsub('}','').gsub('"','').gsub(',','').strip
+
+      # Skip to the next line if there is no key/value data here
+      next if line.empty? || (line.include? 'utag_data') || (line.include? 'script')
+
+      #########################################################################
+      # Split into key and value if the ':' separator is found
+      #########################################################################
+      if line.include? ":"
+        str = line.split ":"
+        key = str[0]
+        val = str[1]
+
+        # We found one of the 'product' keys. Now skip to the next line to find the first value for this key.
+        if product_keywords.include? key
+          current_key = key
+          next
+        end
+
+        ###############################################################################################################################################################
+        # Match the key to the corresponding key stored in the 'utag_var_names' array. This match expression cleans up any other formatting characters on the line too.
+        # Note any keys that are spelled incorrectly or have been added to the original specification will be ignored!
+        ###############################################################################################################################################################
+        if utag_var_names.include? key
+          # Add the key/value pair to the hash
+          val.strip! if val != nil
+          utag_hash.merge!(key => val)
+        end
+
+        # Increment the index that's used to identify the key in the current 'utag_data' line
+        index+=1
+      else
+        ###########################################################################################################################################################################################
+        # There is no ':' separator in this line, therefore we must assume it's product or order related data such as item code (SKU), qty, description, price, order id, shipping total etc
+        ###########################################################################################################################################################################################
+        if line == ']'
+          # When this line contains just a ']' this signifies the end of the product or order array. We assume all the (items) SKU's for this product or order have now been read and are stored
+          # in 'tmp_array'.
+          # Therefore we can write the product or order data eg. { :product_sku => [sku_1, sku_2, sku_3] } to 'utag_hash'
+          utag_hash.merge!(current_key => tmp_array)
+          tmp_array = []
+
+          # Increment the index that's used to identify the key in the 'utags' array
+          index+=1
+        else
+          # Append the value (eg. 'sku_3') to 'tmp_array' as there are still more values to be added to the array of products (or orders) eg. [sku_1, sku_2].
+          tmp_array.push(line)
+        end
+      end
+    end
+
+    ###########################################################################################################################################################################################
+    # INVALID KEYS: Fail this test if any of the keys in utag_data are additional to those expected (ie. so they are invalid)
+    ###########################################################################################################################################################################################
+    utag_hash.each { |key,val| puts "\nERROR: Telium tag data on 'OrderConfirmation' page. Variable '#{key}' in utag_data is unexpected" if !utag_var_names.include? key }
+
+    ###########################################################################################################################################################################################
+    # INVALID KEYS: Fail this test if any of the keys in utag_data (eg. order_shipping_amount) are missing
+    ###########################################################################################################################################################################################
+    utag_var_names.each { |var_name| puts "\nERROR: Telium tag data on 'OrderConfirmation' page. Variable '#{var_name}' is missing from utag_data" if !utag_hash.keys.include? var_name }
+
+    ##############################################################################
+    # return the hash containing all the utag_data variables and their values
+    ##############################################################################
+    return utag_hash
+  end
+
+
+  def get_core_page_data(customer_email_address, page_type)
+    ##################################################################################################################################
+    # The 'core_page_data' hash is used to store the data that the Telium tag javascript data must be compared against.
+    # 'core_page_data' is to be filled with the appropriate values from the scenario data table and the current web page.
+    ##################################################################################################################################
+    core_page_data = {}
+    core_page_data.merge!("site_currency" => COUNTRY_CURRENCY[@country])
+    core_page_data.merge!("site_region" => @country)
+    core_page_data.merge!("page_name" => PAGE_TYPE.key(page_type))
+    core_page_data.merge!("page_type" => page_type.to_s)
+    core_page_data.merge!("customer_email" => customer_email_address) if !customer_email_address.empty?
+
+    # Campaign Source depends on Country code.
+    if @country == "GB"
+      core_page_data.merge!("campaign_source" => "UK+DIRECT+LOAD")
+    else
+      core_page_data.merge!("campaign_source" => @country + "+DIRECT+LOAD")
+    end
+
+    # Find Campaign Code from the browser url (eg. 'gbpdefault' for GB)
+    case @country
+      when "AU"
+        @campaign_url_code = "auddefault"
+      when "US"
+        @campaign_url_code = "usddefault"
+      when "DE"
+        @campaign_url_code = "dmdefault"
+      when "GB"
+        @campaign_url_code = "gbpdefault"
+      else
+        fail "ERROR: Country has not been specified. Test Results will be unreliable, so fail this test"
+    end
+
+    core_page_data.merge!("campaign_url_code" => @campaign_url_code)
+    return core_page_data
+  end
+end

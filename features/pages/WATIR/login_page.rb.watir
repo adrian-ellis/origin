@@ -1,0 +1,46 @@
+class LoginPage
+  # include common methods for page object classes (located in common_modules.rb)
+  include CommonPageMethods
+  include Waiting
+  include Lightboxes
+  include TeliumTags
+
+  #######################################################################
+  # define page object elements / methods on the "login" page
+  #######################################################################
+
+  def initialize(browser,country)
+    @browser               = browser
+    @country               = country
+    @username              = @browser.text_field(:id => 'ctl00_contentBody_email')
+  end
+
+  def username=(username)
+    @browser.text_field(:id => 'ctl00_contentBody_email').set(username)
+  end
+
+  def enter_username(username)
+    @browser.text_field(:id => 'ctl00_contentBody_email').set(username)
+  end
+
+  def password=(password)
+    @browser.text_field(:id => 'ctl00_contentBody_password').set(password)
+  end
+
+  def login
+    @browser.button(:id => 'ctl00_contentBody_submit').click
+  end
+
+  def login_with(username, password)
+    wait_until_element_present(@username)
+    self.enter_username(username)
+    self.password = password
+    prev_url = @browser.url
+    login
+
+    # Wait until My Account page loads, then return a new instance of My Account page
+    wait_until_page_loaded('My Account Page', prev_url)
+    return MyAccountPage.new(@browser,@country)
+  end
+
+end
