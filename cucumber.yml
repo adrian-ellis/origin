@@ -5,5 +5,3 @@ default_ie: BROWSER=ie --guess --tags @shirts_options --tags ~@debug,~@optional 
 google_api: BROWSER=none --tags @google --color --format pretty --format html -o results.html
 optional: --guess --tags @optional --color --format pretty --format html -o results.html
 debug: --guess --tags @debug --color --format pretty --format html -o results.html
-yo_optional: --guess --tags @yo_optional --color --format pretty --format html -o results.html
-yo_debug: --guess --tags @yo_debug --color --format pretty --format html -o results.html
