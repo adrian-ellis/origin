@@ -122,7 +122,7 @@ And /^the response header contains valid data$/ do
   Expect(@response.headers.is_a? Hash)
 
   # Inspect header data
-  puts "Response Header = #{@response.headers}"
+  puts "\n\nResponse Header = #{@response.headers}"
 end
 
 And /^the response contains valid JSON data$/ do
@@ -161,25 +161,26 @@ And /^the response contains valid JSON data$/ do
 end
 
 And /^the following data '([^\']*?)', '([^\']*?)', '([^\']*?)', '([^\']*?)', '([^\']*?)', '([^\']*?)', '([^\']*?)' and '([^\']*?)' are contained in the response$/ do |formatted_address,route,locality,postal_town,administrative_area,country,postal_code,location_type|
-  puts @response
-  puts "\nTHE END\n"
-  str = JsonPath.on(@response,'$..formatted_address')[0].downcase; puts "#{str}\n"
-  str = JsonPath.on(@response,"$..address_components[1]['long_name']")[0].downcase; puts "#{str}\n"
-  str = JsonPath.on(@response,"$..address_components[2]['long_name']")[0].downcase; puts "#{str}\n"
-  str = JsonPath.on(@response,"$..address_components[3]['long_name']")[0].downcase; puts "#{str}\n"
-  str = JsonPath.on(@response,"$..address_components[4]['long_name']")[0].downcase; puts "#{str}\n"
-  str = JsonPath.on(@response,"$..address_components[5]['long_name']")[0]; puts "#{str}\n"
-  str = JsonPath.on(@response,"$..location_type")[0]; puts "#{str}\n"
+  #puts @response
+  puts "\nResponse to request = \n"
+  resp_fmatted_addr = JsonPath.on(@response,'$..formatted_address')[0].downcase; puts "FORMATTED ADDRESS: #{resp_fmatted_addr}\n"
+  resp_addr_line1 = JsonPath.on(@response,"$..address_components[0]['long_name']")[0].downcase; puts "LINE 1: #{resp_addr_line1}\n"
+  resp_addr_line2 = JsonPath.on(@response,"$..address_components[1]['long_name']")[0].downcase; puts "LINE 2: #{resp_addr_line2}\n"
+  resp_addr_line3 = JsonPath.on(@response,"$..address_components[2]['long_name']")[0].downcase; puts "LINE 3: #{resp_addr_line3}\n"
+  resp_addr_line4 = JsonPath.on(@response,"$..address_components[3]['long_name']")[0].downcase; puts "LINE 4: #{resp_addr_line4}\n"
+  resp_addr_line5 = JsonPath.on(@response,"$..address_components[4]['long_name']")[0].downcase; puts "LINE 5: #{resp_addr_line5}\n"
+  resp_addr_line6 = JsonPath.on(@response,"$..address_components[5]['long_name']")[0]; puts "LINE 6: #{resp_addr_line6}\n"
+  resp_locn_type = JsonPath.on(@response,"$..location_type")[0]; puts "#{resp_locn_type}\n"
 
   # Verify the JSON response data contains the expected values (using JsonPath to identify the values we need)
-  Expect(JsonPath.on(@response,'$..formatted_address')[0].downcase.include? formatted_address)
-  Expect(JsonPath.on(@response,"$..address_components[0]['long_name']")[0].downcase == route)
-  Expect(JsonPath.on(@response,"$..address_components[1]['long_name']")[0].downcase == locality)
-  Expect(JsonPath.on(@response,"$..address_components[2]['long_name']")[0].downcase == postal_town)
-  Expect(JsonPath.on(@response,"$..address_components[3]['long_name']")[0].downcase == administrative_area)
-  Expect(JsonPath.on(@response,"$..address_components[4]['long_name']")[0].downcase == country)
-  Expect(JsonPath.on(@response,"$..address_components[5]['long_name']")[0] == postal_code)
-  Expect(JsonPath.on(@response,"$..location_type")[0] == location_type)
+  Expect(resp_fmatted_addr.include? formatted_address)
+  Expect(resp_addr_line1 == route)
+  Expect(resp_addr_line2 == locality)
+  Expect(resp_addr_line3 == postal_town)
+  Expect(resp_addr_line4 == administrative_area)
+  Expect(resp_addr_line5 == country)
+  Expect(resp_addr_line6 == postal_code)
+  Expect(resp_locn_type == location_type)
 end
 
 And /^the response contains the last few programs I watched on iPlayer$/ do

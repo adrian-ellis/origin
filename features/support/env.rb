@@ -167,7 +167,7 @@ Before do
 end
 
 After do |scenario|
-  record_results = FALSE
+  record_results = TRUE
   if scenario.failed? && record_results
     # create directory to store screenshots if needed. Then store the screenshot (whose name is based on the scenario and timestamp) in the 'screenshots' directory
     Dir.mkdir("screenshots") unless File.directory?("screenshots")

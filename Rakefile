@@ -28,7 +28,7 @@ end
 # Note: Passing parameter 't' into the block is just to configure the cucumber task (that we created)
 Cucumber::Rake::Task.new() do |t|
   t.profile = 'default'
-  t.cucumber_opts = "--format progress"
+#  t.cucumber_opts = "--format progress"
 end
 task :default => :cucumber
 
