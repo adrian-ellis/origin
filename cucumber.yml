@@ -1,7 +1,7 @@
-default: BROWSER=firefox --guess --tags @mandatory_options,@simple_order --tags ~@debug,~@optional --color --format pretty --format html -o results.html
-default_chrome: BROWSER=chrome --guess --tags @shirts_options --tags ~@debug,~@optional --color --format pretty --format html -o results.html
-default_firefox: BROWSER=firefox --guess --tags @shirts_options --tags ~@debug,~@optional --color --format pretty --format html -o results.html
-default_ie: BROWSER=ie --guess --tags @shirts_options --tags ~@debug,~@optional --color --format pretty --format html -o results.html
+default: BROWSER=firefox --guess --no-source --tags @mandatory_options,@fml_shirts_size_options,@simple_order --tags ~@debug --tags ~@optional --tags ~@other --color --format pretty --format html -o results.html
+default_chrome: BROWSER=chrome --guess --no-source --tags @fml_shirts_size_options,@mandatory_options --tags ~@debug --tags ~@optional --color --format pretty --format html -o results.html
+default_firefox: BROWSER=firefox --guess --no-source --tags @fml_shirts_size_options,@mandatory_options --tags ~@debug --tags ~@optional --color --format pretty --format html -o results.html
+default_ie: BROWSER=ie --guess --no-source --tags @fml_shirts_size_options,@mandatory_options --tags ~@debug --tags ~@optional --color --format pretty --format html -o results.html
 google_api: BROWSER=none --tags @google --color --format pretty --format html -o results.html
-optional: --guess --tags @optional --color --format pretty --format html -o results.html
-debug: --guess --tags @debug --color --format pretty --format html -o results.html
+optional: BROWSER=firefox --guess --no-source --tags @optional --color --format pretty --format html -o results.html
+debug: BROWSER=firefox --guess --tags @debug --color --format pretty --format html -o results.html

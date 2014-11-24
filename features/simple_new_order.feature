@@ -1,4 +1,4 @@
-@simple_order
+@simple_order @allow-rescue
 Feature: Create simple orders
   As a customer
   I would like to use this website to order fashion products

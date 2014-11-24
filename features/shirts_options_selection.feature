@@ -42,7 +42,7 @@ Feature: Verify all the available shirt options can be selected
     |   GB    |  formal shirt   |       fn017wht       |  sleeve length  |
     |   GB    |  formal shirt   |       fn017wht       |  collar size    |
 
-
+	@shirts_options @allow-rescue
   Scenario Outline: verify values in second box depend on value in 1st box
     Given I am using the "<country>" website
     And I am on the product item detail page for a "<product_type>" with item code "<product_item_code>"
@@ -55,7 +55,7 @@ Feature: Verify all the available shirt options can be selected
     | country |  product_type   |   product_item_code  |  size_option_1    |  size_option_1_value  |   size_option_2   |
     |   GB    |  formal shirt   |      fn017wht        |   collar size     |        15             |   sleeve length   |
 
-  @shirts_options
+  @fml_shirts_size_options @allow-rescue @javascript
   Scenario Outline: all formal shirt sizing options can be selected
     Given I am using the "<country>" website
     And I am on the product item detail page for a "<product_type>" with item code "<product_item_code>"
@@ -70,10 +70,8 @@ Feature: Verify all the available shirt options can be selected
   Scenarios:
     | country |  product_type   |   product_item_code  |  size_option_1    |  size_option_1_value  |  size_option_2    |  final_option  |
     |   GB    |  formal shirt   |      fn017wht        |   collar size     |        16             |  sleeve length    |    34.5        |
-    |   GB    |  formal shirt   |      fn017wht        |   collar size     |        16             |  sleeve length    |    34          |
-    |   GB    |  formal shirt   |      fn017wht        |   collar size     |        15.5           |  sleeve length    |    33.5        |
 
-  @shirts_options
+  @fml_shirts_custom_options
   Scenario Outline: customisation on formal shirts
     Given I am using the "<country>" website
     And I am on the product item detail page for a "<product_type>" with item code "<product_item_code>"

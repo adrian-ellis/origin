@@ -24,7 +24,7 @@ Feature: Mandatory selection of clothing measurements/options
     |   US    |  casual shirt   |     CW244WHT      |      size                  |                            |
     |   GB    |  casual shirt   |     CW244WHT      |      size                  |                            |
 
-  @mandatory_options @chrome @firefox
+  @mandatory_options @chrome @firefox @other @javascript @allow-rescue
   Scenario Outline: Can Add to basket when Mandatory clothing measurement/option is given
     Given I am using the "<country>" website
     And I am on the "<product_type>" item detail page for "<product_item_code>"
