@@ -6,3 +6,5 @@ cucumber_opts
 *.html
 Gemfile.lock
 *.txt
+*.log
+logs

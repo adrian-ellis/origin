@@ -1,3 +1,17 @@
+module LogToFile
+	def log(text)
+		begin
+			file = File.open(LOGFILE, "a")
+			file.write(text)
+		rescue IOError => e
+			#some error occur, dir not writable etc.
+			puts "\nError '#{e}' writing to log file"
+		ensure
+			file.close unless file == nil
+		end
+	end
+end
+
 #-----------------------------------------------------------------------------------------------------------------------------------------------------
 ######################################################################################################################################################
 # MODULE CONTAINING Methods to used by stepdefs to find JSON elements(objects) within a JSON file or string.
@@ -47,7 +61,9 @@ module CapybaraCustomSelectors
 
   # Add a custom Capybara selector that can be used to find any 'link' element with an 'href' attribute EQUAL TO the text 'link_href'
   Capybara.add_selector(:link_href) do
-    xpath { |link_href| XPath.css("a[href='#{link_href}']") }
+    xpath do |link_href| 
+			XPath.css("a[href='#{link_href}']")
+		end
   end
 
   Capybara.add_selector(:link_class) do
@@ -107,7 +123,7 @@ module EnvMethods
     time = Time.now.strftime("%Y-%m-%d-%H%M%S")
 
     # Return filename. Note that Windows has file name limits so limit the length of filename we return
-    return "#{time}-#{scenario_name}".slice(0, 250).gsub(/[\,\/]/, '.')
+    return "#{time}-#{scenario_name}".slice(0, 200).gsub(/[\,\/]/, '.')
   end
 end
 

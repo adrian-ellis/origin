@@ -1,13 +1,13 @@
 Given /^I send a GET request to the geocode REST Service specifying '([^\"]*?)' as an input parameter$/ do |search_address|
 #  request_url = 'https://www.google.co.uk/search'
 #  query_string = '?tbm=map&fp=1&authuser=0&hl=en&pb=!4m12!1m3!1d2718616.7528794543!2d-2.3278149499999996!3d52.83820044999999!2m3!1f0!2f0!3f0!3m2!1i1760!2i423!4f13.1!10b1!12m3!2m1!20e3!16b1!19m7!1e1!1e2!1e5!1e9!1e10!1e12!4smaps_sv.tactile!20m13!1e1!1e2!1e5!1e11!1e4!1e3!1e9!1e10!1e12!2m2!1i203!2i100!5smaps_sv.tactile!22m4!1sv0nFU7riDcOq0QW9-oG4DQ!4m1!2i5355!7e81!26m4!1e12!1e13!1e3!4smaps_sv.tactile!30m28!1m6!1m2!1i0!2i0!2m2!1i450!2i423!1m6!1m2!1i1710!2i0!2m2!1i1760!2i423!1m6!1m2!1i0!2i0!2m2!1i1760!2i20!1m6!1m2!1i0!2i403!2m2!1i1760!2i423&q=tw8%209de&oq=tw8%209de&gs_l=maps.12..38i69.66119.73479.1.80771.8.8.0.0.0.0.1748.2696.0j5j1j8-1.7.0....0...1ac.1.40.maps..1.7.2696.3.&tch=1&ech=1&psi=v0nFU7riDcOq0QW9-oG4DQ.1405438402272.1'
-#  hash_string = {:params => {:tbm => 'map', :fp => 1, :authuser => 0, :hl => 'en', :pb =>'!4m12!1m3!1d2718616.7528794543!2d-2.3278149499999996!3d52.83820044999999!2m3!1f0!2f0!3f0!3m2!1i1760!2i423!4f13.1!10b1!12m3!2m1!20e3!16b1!19m7!1e1!1e2!1e5!1e9!1e10!1e12!4smaps_sv.tactile!20m13!1e1!1e2!1e5!1e11!1e4!1e3!1e9!1e10!1e12!2m2!1i203!2i100!5smaps_sv.tactile!22m4!1sv0nFU7riDcOq0QW9-oG4DQ!4m1!2i5355!7e81!26m4!1e12!1e13!1e3!4smaps_sv.tactile!30m28!1m6!1m2!1i0!2i0!2m2!1i450!2i423!1m6!1m2!1i1710!2i0!2m2!1i1760!2i423!1m6!1m2!1i0!2i0!2m2!1i1760!2i20!1m6!1m2!1i0!2i403!2m2!1i1760!2i423', :q => 'tw8%209de', :oq => 'tw8%209de', :gs_l => 'maps.12..38i69.66119.73479.1.80771.8.8.0.0.0.0.1748.2696.0j5j1j8-1.7.0....0...1ac.1.40.maps..1.7.2696.3.', :tch => 1, :ech => 1, :psi=> 'v0nFU7riDcOq0QW9-oG4DQ.1405438402272.1'}}
-#  @response = RestClient.get(request_url, hash_string)
+#  query_string = {:params => {:tbm => 'map', :fp => 1, :authuser => 0, :hl => 'en', :pb =>'!4m12!1m3!1d2718616.7528794543!2d-2.3278149499999996!3d52.83820044999999!2m3!1f0!2f0!3f0!3m2!1i1760!2i423!4f13.1!10b1!12m3!2m1!20e3!16b1!19m7!1e1!1e2!1e5!1e9!1e10!1e12!4smaps_sv.tactile!20m13!1e1!1e2!1e5!1e11!1e4!1e3!1e9!1e10!1e12!2m2!1i203!2i100!5smaps_sv.tactile!22m4!1sv0nFU7riDcOq0QW9-oG4DQ!4m1!2i5355!7e81!26m4!1e12!1e13!1e3!4smaps_sv.tactile!30m28!1m6!1m2!1i0!2i0!2m2!1i450!2i423!1m6!1m2!1i1710!2i0!2m2!1i1760!2i423!1m6!1m2!1i0!2i0!2m2!1i1760!2i20!1m6!1m2!1i0!2i403!2m2!1i1760!2i423', :q => 'tw8%209de', :oq => 'tw8%209de', :gs_l => 'maps.12..38i69.66119.73479.1.80771.8.8.0.0.0.0.1748.2696.0j5j1j8-1.7.0....0...1ac.1.40.maps..1.7.2696.3.', :tch => 1, :ech => 1, :psi=> 'v0nFU7riDcOq0QW9-oG4DQ.1405438402272.1'}}
+#  @response = RestClient.get(request_url, query_string)
 
   # send the HTTP GET using RestClient
   request_url = 'https://maps.googleapis.com/maps/api/geocode/json'
-  hash_string = {:params => {:address => search_address, :sensor => 'false'}}
-  @response = RestClient.get(request_url, hash_string)
+  query_string = {:params => {:address => search_address, :sensor => 'false'}}
+  @response = RestClient.get(request_url, query_string)
 
 #
 #  *** RestClient methods from the module ***
@@ -49,8 +49,8 @@ Given /^I send a GET request to the geocode REST Service specifying '([^\"]*?)' 
   request_url = 'https://maps.googleapis.com/maps/api/geocode/json'
 
   # send the HTTP GET using RestClient
-  hash_string = {:params => {:address => search_address, :address_components => postcode_str, :sensor => 'false'}}
-  @response = RestClient.get(request_url, hash_string)
+  query_string = {:params => {:address => search_address, :address_components => postcode_str, :sensor => 'false'}}
+  @response = RestClient.get(request_url, query_string)
 end
 
 Given /^I send a find_XType GET request with:$/ do |table|

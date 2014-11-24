@@ -39,7 +39,7 @@ PAGE_ELEMENT_TIMEOUT_SECS = 5    # default timeout value for a given page elemen
 
 # Enable logging to stdout. This gives information about what the test is actually doing
 # (eg. giving contents of the basket before and after removing an item)
-ENABLED_LOGGING                = TRUE
+ENABLED_LOGGING           = TRUE
 
 # To provide more detail, this will switch logging of individual items 'on' if TRUE, and 'off' if FALSE
 # (eg. outputing the SKU's and names of shirts after sorting by price has been carried out on a product page)
@@ -143,7 +143,7 @@ end
 #session = Capybara::Session.new(:selenium_firefox)
 ##################################
 
-Before do
+Before do |scenario|
   case ENV['BROWSER']
   when "chrome"
     Capybara.current_driver = :selenium_chrome
@@ -159,11 +159,16 @@ Before do
 
   unless ENV['BROWSER'] == "none"
     @page = page
+		# clear cookies (by reseting the browser in current session)
+		#Capybara.current_session.driver.browser.manage.delete_all_cookies
+		Capybara.current_session.reset!
     Capybara.current_session.current_window.maximize
   end
 
-  # clear cookies using a capybara API
-  #Capybara.current_session.driver.browser.manage.delete_all_cookies
+  # create 'logs' directory if needed. Then create a log file (whose name is based on the scenario and timestamp) in thia directory
+  Dir.mkdir("logs") unless File.directory?("logs")
+	LOGFILE = %Q(logs/#{scenario_name(scenario)}.log)
+	File.new(LOGFILE, 'w')
 end
 
 After do |scenario|
@@ -178,9 +183,7 @@ After do |scenario|
     Dir.mkdir("results") unless File.directory?("results")
     file_name_html = scenario_name(scenario) + '.html'
     FileUtils.copy('results.html', "results/#{file_name_html}")
-
-  end
-  Capybara.current_session.reset!
+	end
 end
 
 at_exit do

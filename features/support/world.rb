@@ -5,6 +5,7 @@ class CustomWorld
   include CapybaraCustomSelectors
   include BooleanExpectations
   include EnvMethods
+	include LogToFile
   include JsonDataQuerying
   include Waiting
 

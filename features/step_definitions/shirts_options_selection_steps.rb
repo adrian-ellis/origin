@@ -139,7 +139,7 @@ When /^I select "(\w+\s\w+)"$/ do |size_option|
     # link within the 'div' table. The reason
     ###############################################################################################################################################
     @slv_table_values = @detailPage.get_all_sleeve_lengths
-    puts "SLV LNS = #{@slv_table_values}\n"
+    log("SLEEVE LENGTH CODES = #{@slv_table_values}\n") if ENABLED_LOGGING
   else
     puts "\nERROR: Invalid measurement option. Please use \'collar size\' or \'sleeve length\' instead"
   end
@@ -192,10 +192,11 @@ And /^select each one of the options for "(.*?)" in turn terminating with "(.*?)
 
     # Verify that the current value of sleeve length in the select box matches the value selected (by method set_sleeve_length_value()).
     out_of_stock = TRUE if (select_box_value.downcase.include? "sold out") || (select_box_value.downcase.include? "order now") || (select_box_value.downcase.include? "stock due")
-    if select_box_value != @slv_table_values.key(size_option_code) && !out_of_stock
+    if (select_box_value != @slv_table_values.key(size_option_code)) && (!out_of_stock)
       Expect(select_box_value == @slv_table_values.key(size_option_code))
     end
-    puts "\nINFO: Sleeve length value \'#{select_box_value}\' selected successfully for product item"
+    puts "\nINFO: Sleeve length value \'#{select_box_value}\' selected successfully for product item" if ENABLED_LOGGING
+    log("\nINFO: Sleeve length value \'#{select_box_value}\' selected successfully for product item") if ENABLED_LOGGING
 	
 	  # open selection box to allow its current value to be changed
     @detailPage.open_sleeve_length_select_box

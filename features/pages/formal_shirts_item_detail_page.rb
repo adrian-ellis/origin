@@ -10,6 +10,7 @@ class FormalShirtsItemDetailPage
   include Capybara::DSL
   include CapybaraCustomSelectors
   include BooleanExpectations
+	include LogToFile
   include WaitForAjax
   include Waiting
   include CommonPageMethods
@@ -154,12 +155,24 @@ class FormalShirtsItemDetailPage
   def set_sleeve_length_value(size_option_code)
     # size_option_code (eg. "33|7") matches the tail part of the 'href' attribute of the link we want to click (eg. '#33\|7')
     @size_option_code = size_option_code
-    puts "Setting Sleeve length to '#{@size_option_code}'\n"
+    log("Setting Sleeve length to '#{@size_option_code}'\n") if ENABLED_LOGGING
 
     # Wait for the elements (specifically the link whose 'href' attribute matches size_option_code) in the data table to become present.
     # Then click on that link, to set the sleeve length value.
     wait_until_element_present { @page.has_selector?(%Q(div#sleeve_length[class*="open"] a[href$="#{@size_option_code}"])) }
     @page.find(%Q(div#sleeve_length[class*="open"] a[href$="#{@size_option_code}"])).click
+		
+		# If clicking on the link did not close the select box then wait 1 second and try clicking again. 
+		# Try this up to 3 times. If it's still open after doing this, then the test will fail on next statement outside this loop.
+		counter=0
+		while @page.has_selector?(%Q(div#sleeve_length[class*="open"])) do
+			break if counter > 2
+			@page.find(%Q(div#sleeve_length[class*="open"] a[href$="#{@size_option_code}"])).click
+			sleep 1
+			counter+=1
+		end
+		
+		# Wait until the select box is closed.
     wait_until_element_present { @page.has_selector?(%Q(div#sleeve_length[class*="closed"]), :visible => FALSE) }
   end
 
