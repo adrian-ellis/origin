@@ -123,7 +123,7 @@ module EnvMethods
     time = Time.now.strftime("%Y-%m-%d-%H%M%S")
 
     # Return filename. Note that Windows has file name limits so limit the length of filename we return
-    return "#{time}-#{scenario_name}".slice(0, 200).gsub(/[\,\/]/, '.')
+    return "#{time}-#{scenario_name}".slice(0, 150).gsub(/[\,\/]/, '.')
   end
 end
 
