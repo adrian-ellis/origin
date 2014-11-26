@@ -7,4 +7,7 @@ cucumber_opts
 Gemfile.lock
 *.txt
 *.log
+*.json
 logs
+junit_output
+json_output.json
