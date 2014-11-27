@@ -11,14 +11,17 @@ require 'cucumber/rake/task'
 #	task :default => :cucumber
 #end
 
-Cucumber::Rake::Task.new(:firefox_json_task) do |t|
-		t.profile = 'default_firefox_json'
+# declare all tasks
+namespace 'creatures' do
+		Cucumber::Rake::Task.new(:ff_json) do |t|
+			t.profile = 'default_firefox_json'
+		end
+		Cucumber::Rake::Task.new(:ff_junit) do |t|
+			t.profile = 'default_firefox_junit'
+		end
+		Cucumber::Rake::Task.new(:ff_html) do |t|
+			t.profile = 'default_firefox_html'
+		end
 end
-#task :firefox_json_task => :cucumber
-
-Cucumber::Rake::Task.new(:last_task) do |t|
-		t.profile = 'default_chrome'
-end
-#task :last_task => :cucumber
 	
 
