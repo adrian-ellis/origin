@@ -1,17 +1,8 @@
 require 'cucumber'
 require 'cucumber/rake/task'
 
-# Runs just the default profile
-# Note: Passing parameter 't' into the block is just to configure the cucumber task (that we created)
-#all_profiles = ['default_firefox_html','default_firefox_json','default_firefox_junit']
-#all_profiles.each do |p|
-#	Cucumber::Rake::Task.new() do |t|
-#		t.profile = p
-#	end
-#	task :default => :cucumber
-#end
-
-# declare all tasks
+# Declare all tasks. We can then specify which tasks we want to run from the command line
+# or from within TeamCity CI
 namespace 'creatures' do
 		Cucumber::Rake::Task.new(:ff_json) do |t|
 			t.profile = 'default_firefox_json'

@@ -179,7 +179,10 @@ After do |scenario|
     file_name_png = scenario_name(scenario) + '.png'
     page.save_screenshot("screenshots/#{file_name_png}")
 
-    # create 'results' directory if needed. Then copy the results file (whose name is based on the scenario and timestamp) to thia directory
+    # attach a screenshot to the results file defined in the cucumber profile (inside the cucumber.yml file)
+    embed("screenshots/#{file_name_png}", 'image/png','screenshot')
+
+		# create 'results' directory if needed. Then copy the results file (whose name is based on the scenario and timestamp) to thia directory
     Dir.mkdir("results") unless File.directory?("results")
     file_name_html = scenario_name(scenario) + '.html'
     FileUtils.copy('results.html', "results/#{file_name_html}")
