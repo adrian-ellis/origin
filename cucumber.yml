@@ -1,4 +1,4 @@
-default: BROWSER=chrome --guess --tags @fml_shirts_size_options,@mandatory_options,@google --tags ~@debug --tags ~@optional --tags ~@other --color --format pretty --format html -o results.html
+default: BROWSER=chrome --guess --tags @google,@simple_order --tags ~@debug --tags ~@optional --tags ~@other --color --format pretty --format html -o results.html
 default_chrome: BROWSER=chrome --guess --no-source --tags @fml_shirts_size_options,@mandatory_options --tags ~@debug --tags ~@optional --color --format pretty --format html -o results.html
 default_firefox_html: BROWSER=firefox --guess --no-source --tags @google,@simple_order --tags ~@debug --tags ~@optional --color --format pretty --format html -o results.html
 default_firefox_json: BROWSER=firefox --guess --no-source --tags @google,@simple_order --tags ~@debug --tags ~@optional --color --format pretty --format json -o json_output.json

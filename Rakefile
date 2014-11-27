@@ -3,7 +3,7 @@ require 'cucumber/rake/task'
 
 # Declare all tasks. We can then specify which tasks we want to run from the command line
 # or from within TeamCity CI
-namespace 'creatures' do
+namespace :features do
 		Cucumber::Rake::Task.new(:ff_json) do |t|
 			t.profile = 'default_firefox_json'
 		end
