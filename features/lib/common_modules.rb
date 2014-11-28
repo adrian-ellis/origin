@@ -1,7 +1,7 @@
 module LogToFile
 	def log(text)
 		begin
-			file = File.open(LOGFILE, "a")
+			file = File.open(ENV['LOGFILE'], "a")
 			file.write(text)
 		rescue IOError => e
 			#some error occur, dir not writable etc.

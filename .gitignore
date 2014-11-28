@@ -8,6 +8,7 @@ Gemfile.lock
 *.txt
 *.log
 *.json
+*.xml
 logs
 junit_output
 json_output.json

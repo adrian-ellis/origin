@@ -167,8 +167,8 @@ Before do |scenario|
 
   # create 'logs' directory if needed. Then create a log file (whose name is based on the scenario and timestamp) in thia directory
   Dir.mkdir("logs") unless File.directory?("logs")
-	LOGFILE = %Q(logs/#{scenario_name(scenario)}.log)
-	File.new(LOGFILE, 'w')
+	ENV['LOGFILE'] ||= %Q(logs/#{scenario_name(scenario)}.log)
+	File.new(ENV['LOGFILE'], 'w')
 end
 
 After do |scenario|
