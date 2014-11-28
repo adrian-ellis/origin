@@ -26,7 +26,21 @@ class FormalShirtsItemDetailPage
     @page = page
     @country = country
     @mtc_href_identifier   = 'TieCufflinkMatcher'
-  end
+		
+		#define a hash containing the names & 'id' locators for all the monogram colour radio buttons
+		@monogram_colour_radio_buttons = { :black => 'fieldset#monogram mg_colour_black',
+		 																	 :burgundy => 'fieldset#monogram mg_colour_burgundy' }
+																			 
+		#define a hash containing the names & 'id' locators for all the monogram font radio buttons
+		@monogram_font_radio_buttons = { :brush_script => 'fieldset#monogram mg_font_brush_script',
+		 																 :circle => 'fieldset#monogram mg_font_circle' }
+
+		#define a hash containing the names & 'id' locators for all the monogram font radio buttons
+		@monogram_position_radio_buttons = { 'chest' => 'pos_chest',
+		 																 'cuff centre' => 'pos_cuff_centre',
+		 																 'cuff watch' => 'pos_cuff_watch',
+		 																 'cuff link' => 'pos_cuff_link' }
+	end
 
   # Element that contains the user controls on this page eg. 'size' selection box
   def main_controls_section
@@ -339,8 +353,16 @@ class FormalShirtsItemDetailPage
     @page.find(:div_id, "ctl00_contentBody_ctl02_addMngm")
   end
 
+  def add_monogram_checkbox_exists
+    @page.has_selector?('add_mngm', :visible => FALSE)
+  end
+
   def select_add_monogram
     @page.check('add_mngm', :visible => FALSE)
+  end
+
+  def monogram_description_is_displayed?
+    add_monogram_section.has_selector?(:div_id, "monogram_desc")
   end
 
   def monogram_description
@@ -348,7 +370,7 @@ class FormalShirtsItemDetailPage
   end
 
   # span element that contains the checkbox and its value (ie. "checked" or "")
-  def add_monogram_is_checked
+  def add_monogram_is_checked?
     add_monogram_section.has_selector?(:span_class, "checked") ? TRUE : FALSE
   end
 
@@ -399,6 +421,16 @@ class FormalShirtsItemDetailPage
   ##########################################################################
   # define methods for 'fonts' radio buttons
   ##########################################################################
+	def verify_all_font_radio_buttons_present
+		@monogram_font_radio_buttons.each do |key,val|									 
+			expect(monogram_lightbox.has_selector?(val, :visible => FALSE)).to be(TRUE)
+		end
+	end
+
+  def select_font(font)
+		@page.choose(@monogram_font_radio_buttons[position], :visible => FALSE)
+  end
+
   def select_brush_script_font
     monogram_lightbox.choose("mg_font_brush_script", :visible => FALSE)
   end
@@ -434,6 +466,16 @@ class FormalShirtsItemDetailPage
   ##########################################################################
   # define methods for 'colour' radio buttons
   ##########################################################################
+	def verify_all_colour_radio_buttons_present
+		@monogram_colour_radio_buttons.each do |key,val|									 
+			expect(monogram_lightbox.has_selector?(val, :visible => FALSE)).to be(TRUE)
+		end
+	end
+												
+  def select_colour(colour)
+		@page.choose(@monogram_colour_radio_buttons[position], :visible => FALSE)
+  end
+
   def select_colour_black
     monogram_lightbox.choose("mg_colour_black", :visible => FALSE)
   end
@@ -485,6 +527,16 @@ class FormalShirtsItemDetailPage
   ##########################################################################
   # define methods for 'position' radio buttons
   ##########################################################################
+	def verify_all_poisition_radio_buttons_present
+		@monogram_position_radio_buttons.each do |key,val|									 
+			expect(monogram_lightbox.has_selector?(val, :visible => FALSE)).to be(TRUE)
+		end
+	end
+
+  def select_position(position)
+		@page.choose(@monogram_position_radio_buttons[position], :visible => FALSE)
+  end
+
   def select_position_chest
     monogram_lightbox.choose("pos_chest", :visible => FALSE)
   end
