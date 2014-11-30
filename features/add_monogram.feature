@@ -1,4 +1,4 @@
-@ready
+@monogram
 Feature: Add a monogram to the shirt displayed on the product detail page
   As a customer
   I would like to add a monogram to any suitable (formal or evening) shirt displayed on the product page
@@ -6,7 +6,7 @@ Feature: Add a monogram to the shirt displayed on the product detail page
 
   Scenario Outline: verify the Add monogram lightbox appears for a suitable (formal or evening) shirt
     Given I am using the "<country>" website
-    And I am on the product item detail page for a suitable formal shirt "<product_item_code>"
+    And I am on the product item detail page for a formal shirt "<product_item_code>"
     When I select Add Monogram on the product item detail page
     Then the Add monogram lightbox appears
     And the Add monogram lightbox contains selectable fields for font, colour and position and a text entry field for initials
@@ -16,7 +16,7 @@ Feature: Add a monogram to the shirt displayed on the product detail page
     | country | product_item_code |
     |   US    |     SN112SKY      |
     |   AU    |     SN112SKY      |
-    |   US    |     SN112SKY      |
+    |   GB    |     SN112SKY      |
     |   DE    |     SN112SKY      |
 
   Scenario Outline: Add a monogram to a suitable (formal or evening) shirt displayed on the product page
@@ -34,10 +34,10 @@ Feature: Add a monogram to the shirt displayed on the product detail page
   Examples:
     | country | product_item_code |  font          | colour        | position           |  initials  |
     |   GB    |      SN112SKY     |  circle        | royal blue    | chest (left)       |    ADE     |
-    |   GB    |      SN112SKY     |  Brush script  | navy          | cuff centre        |    LP12    |
-    |   GB    |      SN112SKY     | sports script  | racing green  | cuff above watch   |    xGTx    |
-    |   AU    |      SN112SKY     |  circle        | royal blue    | chest (left)       |    ADE     |
     |   AU    |      SN112SKY     |  Brush script  | navy          | cuff centre        |    LP12    |
-    |   AU    |      SN112SKY     | sports script  | racing green  | cuff above watch   |    xGTx    |
+    |   GB    |      SN112SKY     |  Brush script  | navy          | cuff centre        |    LP12    |
+    |   US    |      SN112SKY     | sports script  | racing green  | cuff above watch   |    xGTx    |
+    |   DE    |      SN112SKY     | sports script  | racing green  | cuff above watch   |    xGTx    |
+    |   AU    |      SN112SKY     |  circle        | royal blue    | chest (left)       |    ADE     |
 
 

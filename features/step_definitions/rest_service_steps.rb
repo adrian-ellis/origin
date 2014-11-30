@@ -161,18 +161,29 @@ And /^the response contains valid JSON data$/ do
 end
 
 And /^the following data '([^\']*?)', '([^\']*?)', '([^\']*?)', '([^\']*?)', '([^\']*?)', '([^\']*?)', '([^\']*?)' and '([^\']*?)' are contained in the response$/ do |formatted_address,route,locality,postal_town,administrative_area,country,postal_code,location_type|
-  #puts @response
-  puts "\nResponse to request = \n"
-  resp_fmatted_addr = JsonPath.on(@response,'$..formatted_address')[0].downcase; puts "FORMATTED ADDRESS: #{resp_fmatted_addr}\n"
-  resp_addr_line1 = JsonPath.on(@response,"$..address_components[0]['long_name']")[0].downcase; puts "LINE 1: #{resp_addr_line1}\n"
-  resp_addr_line2 = JsonPath.on(@response,"$..address_components[1]['long_name']")[0].downcase; puts "LINE 2: #{resp_addr_line2}\n"
-  resp_addr_line3 = JsonPath.on(@response,"$..address_components[2]['long_name']")[0].downcase; puts "LINE 3: #{resp_addr_line3}\n"
-  resp_addr_line4 = JsonPath.on(@response,"$..address_components[3]['long_name']")[0].downcase; puts "LINE 4: #{resp_addr_line4}\n"
-  resp_addr_line5 = JsonPath.on(@response,"$..address_components[4]['long_name']")[0].downcase; puts "LINE 5: #{resp_addr_line5}\n"
-  resp_addr_line6 = JsonPath.on(@response,"$..address_components[5]['long_name']")[0]; puts "LINE 6: #{resp_addr_line6}\n"
-  resp_locn_type = JsonPath.on(@response,"$..location_type")[0]; puts "#{resp_locn_type}\n"
+  # Use JsonPath to build queries (on fields whose contents we need to verify) based on the JSON fields in the response.
+  resp_fmatted_addr = JsonPath.on(@response,'$..formatted_address')[0].downcase
+  resp_addr_line1 = JsonPath.on(@response,"$..address_components[0]['long_name']")[0].downcase
+  resp_addr_line2 = JsonPath.on(@response,"$..address_components[1]['long_name']")[0].downcase
+  resp_addr_line3 = JsonPath.on(@response,"$..address_components[2]['long_name']")[0].downcase
+  resp_addr_line4 = JsonPath.on(@response,"$..address_components[3]['long_name']")[0].downcase
+  resp_addr_line5 = JsonPath.on(@response,"$..address_components[4]['long_name']")[0].downcase
+  resp_addr_line6 = JsonPath.on(@response,"$..address_components[5]['long_name']")[0]
+  resp_locn_type = JsonPath.on(@response,"$..location_type")[0]
 
-  # Verify the JSON response data contains the expected values (using JsonPath to identify the values we need)
+  if LOGGING_ENABLED
+    puts "\nResponse to request = \n"
+    puts "FORMATTED ADDRESS: #{resp_fmatted_addr}\n"
+    puts "LINE 1: #{resp_addr_line1}\n"
+    puts "LINE 2: #{resp_addr_line2}\n"
+    puts "LINE 3: #{resp_addr_line3}\n"
+    puts "LINE 4: #{resp_addr_line4}\n"
+    puts "LINE 5: #{resp_addr_line5}\n"
+    puts "LINE 6: #{resp_addr_line6}\n"
+    puts "LOCATION type: #{resp_locn_type}\n"
+  end
+
+  # Verify the ACTUAL VALUES match the expected values (from the JsonPath queries we built)
   Expect(resp_fmatted_addr.include? formatted_address)
   Expect(resp_addr_line1 == route)
   Expect(resp_addr_line2 == locality)

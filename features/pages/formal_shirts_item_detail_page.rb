@@ -1,10 +1,3 @@
-require "#{Dir.pwd}/features/lib/common_modules"
-
-#INCHES = "inches"
-#CM = "cm"
-NONE = "none"
-ERROR = "error"
-
 class FormalShirtsItemDetailPage
   # include common methods for page object classes (located in common_modules.rb)
   include Capybara::DSL
@@ -28,18 +21,34 @@ class FormalShirtsItemDetailPage
     @mtc_href_identifier   = 'TieCufflinkMatcher'
 		
 		#define a hash containing the names & 'id' locators for all the monogram colour radio buttons
-		@monogram_colour_radio_buttons = { :black => 'fieldset#monogram mg_colour_black',
-		 																	 :burgundy => 'fieldset#monogram mg_colour_burgundy' }
-																			 
-		#define a hash containing the names & 'id' locators for all the monogram font radio buttons
-		@monogram_font_radio_buttons = { :brush_script => 'fieldset#monogram mg_font_brush_script',
-		 																 :circle => 'fieldset#monogram mg_font_circle' }
+		@mg_colour_radio_buttons = {  'black' => 'mg_colour_black',
+		 																	  'burgundy' => 'mg_colour_burgundy',
+                                        'purple' => 'mg_colour_purple',
+                                        'navy' => 'mg_colour_blue',
+                                        'royal blue' => 'mg_colour_royalblue',
+                                        'light blue' => 'mg_colour_lightblue',
+                                        'racing green' => 'mg_colour_racing_green',
+                                        'red' => 'mg_colour_red',
+                                        'pink' => 'mg_colour_pink',
+                                        'grey' => 'mg_colour_grey',
+                                        'yellow' => 'mg_colour_yellow',
+                                        'white' => 'mg_colour_white' }
 
 		#define a hash containing the names & 'id' locators for all the monogram font radio buttons
-		@monogram_position_radio_buttons = { 'chest' => 'pos_chest',
+		@mg_font_radio_buttons = { 'brush script' => 'mg_font_brush_script',
+		 																 'circle' => 'mg_font_circle',
+		 																 'clarendon' => 'mg_font_clarendon',
+		 																 'diamond' => 'mg_font_diamond',
+		 																 'old english' => 'mg_font_olde_english',
+		 																 'roman block' => 'mg_font_roman_block',
+		 																 'sports script' => 'mg_font_sports_script',
+		 																 'upright script' => 'mg_font_upright_script' }
+
+		#define a hash containing the names & 'id' locators for all the monogram font radio buttons
+    @mg_position_radio_buttons = { 'chest (left)' => 'pos_chest',
 		 																 'cuff centre' => 'pos_cuff_centre',
-		 																 'cuff watch' => 'pos_cuff_watch',
-		 																 'cuff link' => 'pos_cuff_link' }
+		 																 'cuff above watch' => 'pos_cuff_watch',
+		 																 'cuff below link' => 'pos_cuff_link' }
 	end
 
   # Element that contains the user controls on this page eg. 'size' selection box
@@ -324,7 +333,6 @@ class FormalShirtsItemDetailPage
   ####################################################################################
   # customisation options related methods - eg. single/double cuff
   ####################################################################################
-
   def select_single_cuff
     @page.choose('sngl_cuff', :visible => FALSE)
   end
@@ -353,25 +361,27 @@ class FormalShirtsItemDetailPage
     @page.find(:div_id, "ctl00_contentBody_ctl02_addMngm")
   end
 
-  def add_monogram_checkbox_exists
-    @page.has_selector?('add_mngm', :visible => FALSE)
+  # verify if the 'add monogram' checkbox is displayed?
+  def add_monogram_checkbox_displayed?
+    @page.has_selector?(:input_id, 'add_mngm', :visible => FALSE)
   end
 
-  def select_add_monogram
+  # check the 'add monogram' checkbox
+  def check_add_monogram
     @page.check('add_mngm', :visible => FALSE)
   end
 
-  def monogram_description_is_displayed?
+  # verify if the 'add monogram' checkbox is checked, by inspecting the span element that contains the checkbox and its value (ie. "checked" or "").
+  def add_monogram_checked?
+    add_monogram_section.has_selector?(:span_class, "checked") ? TRUE : FALSE
+  end
+
+  def monogram_description_displayed?
     add_monogram_section.has_selector?(:div_id, "monogram_desc")
   end
 
   def monogram_description
-    add_monogram_section.find(:div_id, "monogram_desc")
-  end
-
-  # span element that contains the checkbox and its value (ie. "checked" or "")
-  def add_monogram_is_checked?
-    add_monogram_section.has_selector?(:span_class, "checked") ? TRUE : FALSE
+    add_monogram_section.find(:div_id, "monogram_desc").text
   end
 
   #-----------------------------------------------------------------------------------
@@ -403,17 +413,25 @@ class FormalShirtsItemDetailPage
   # define (page object) elements in "add monogram" lightbox
   ####################################################################################
   #-----------------------------------------------------------------------------------
+  def monogram_lightbox_displayed?
+    @page.has_selector?('fieldset#monogram')
+  end
+
   def monogram_lightbox
     @page.find('fieldset#monogram')
   end
 
   # add monogram button  (located at the bottom of the lightbox)
+  def add_monogram_button_displayed?
+    monogram_lightbox.has_selector?('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => FALSE)
+  end
+
   def confirm_add_monogram
     monogram_lightbox.find('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => FALSE).click
   end
 
   # initials text box
-  def fill_in_initials_text_box(text)
+  def mg_initials=(text)
     #initials_text_box was monogram_lightbox.text_field(:id => "ctl00_contentBody_ctl02_ctl00_mg_initials")
     monogram_lightbox.fill_in('ctl00_contentBody_ctl02_ctl00_mg_initials', :with => text)
   end
@@ -421,136 +439,37 @@ class FormalShirtsItemDetailPage
   ##########################################################################
   # define methods for 'fonts' radio buttons
   ##########################################################################
-	def verify_all_font_radio_buttons_present
-		@monogram_font_radio_buttons.each do |key,val|									 
-			expect(monogram_lightbox.has_selector?(val, :visible => FALSE)).to be(TRUE)
-		end
-	end
-
-  def select_font(font)
-		@page.choose(@monogram_font_radio_buttons[position], :visible => FALSE)
+  def font_radio_button_present(font)
+    selector = 'input#' + @mg_font_radio_buttons[font]
+    @page.has_selector?(selector, :visible => FALSE)
   end
 
-  def select_brush_script_font
-    monogram_lightbox.choose("mg_font_brush_script", :visible => FALSE)
-  end
-
-  def select_circle_font
-    monogram_lightbox.choose("mg_font_circle", :visible => FALSE)
-  end
-
-  def select_clarendon_font
-    monogram_lightbox.choose("mg_font_clarendon", :visible => FALSE)
-  end
-
-  def select_diamond_font
-    monogram_lightbox.choose("mg_font_diamond", :visible => FALSE)
-  end
-
-  def select_old_english_font
-    monogram_lightbox.choose("mg_font_olde_english", :visible => FALSE)
-  end
-
-  def select_roman_block_font
-    monogram_lightbox.choose("mg_font_roman_block", :visible => FALSE)
-  end
-
-  def select_sports_script_font
-    monogram_lightbox.choose("mg_font_sports_script", :visible => FALSE)
-  end
-
-  def select_upright_script_font
-    monogram_lightbox.choose("mg_font_upright_script", :visible => FALSE)
+  def mg_font=(font)
+		@page.choose(@mg_font_radio_buttons[font], :visible => FALSE)
   end
 
   ##########################################################################
   # define methods for 'colour' radio buttons
   ##########################################################################
-	def verify_all_colour_radio_buttons_present
-		@monogram_colour_radio_buttons.each do |key,val|									 
-			expect(monogram_lightbox.has_selector?(val, :visible => FALSE)).to be(TRUE)
-		end
-	end
-												
-  def select_colour(colour)
-		@page.choose(@monogram_colour_radio_buttons[position], :visible => FALSE)
+  def colour_radio_button_present(colour)
+    selector = 'input#' + @mg_colour_radio_buttons[colour]
+    @page.has_selector?(selector, :visible => FALSE)
   end
 
-  def select_colour_black
-    monogram_lightbox.choose("mg_colour_black", :visible => FALSE)
-  end
-
-  def select_colour_burgundy
-    monogram_lightbox.choose("mg_colour_burgundy", :visible => FALSE)
-  end
-
-  def select_colour_purple
-    monogram_lightbox.choose("mg_colour_purple", :visible => FALSE)
-  end
-
-  def select_colour_navy
-    monogram_lightbox.choose("mg_colour_blue", :visible => FALSE)
-  end
-
-  def select_colour_royal_blue
-    monogram_lightbox.choose("mg_colour_royalblue", :visible => FALSE)
-  end
-
-  def select_colour_light_blue
-    monogram_lightbox.choose("mg_colour_lightblue", :visible => FALSE)
-  end
-
-  def select_colour_racing_green
-    monogram_lightbox.choose("mg_colour_racing_green", :visible => FALSE)
-  end
-
-  def select_colour_red
-    monogram_lightbox.choose("mg_colour_red", :visible => FALSE)
-  end
-
-  def select_colour_pink
-    monogram_lightbox.choose("mg_colour_pink", :visible => FALSE)
-  end
-
-  def select_colour_grey
-    monogram_lightbox.choose("mg_colour_grey", :visible => FALSE)
-  end
-
-  def select_colour_yellow
-    monogram_lightbox.choose("mg_colour_yellow", :visible => FALSE)
-  end
-
-  def select_colour_white
-    monogram_lightbox.choose("mg_colour_white", :visible => FALSE)
+  def mg_colour=(colour)
+		@page.choose(@mg_colour_radio_buttons[colour], :visible => FALSE)
   end
 
   ##########################################################################
   # define methods for 'position' radio buttons
   ##########################################################################
-	def verify_all_poisition_radio_buttons_present
-		@monogram_position_radio_buttons.each do |key,val|									 
-			expect(monogram_lightbox.has_selector?(val, :visible => FALSE)).to be(TRUE)
-		end
-	end
-
-  def select_position(position)
-		@page.choose(@monogram_position_radio_buttons[position], :visible => FALSE)
+  def position_radio_button_present(position)
+    selector = 'input#' + @mg_position_radio_buttons[position]
+    @page.has_selector?(selector, :visible => FALSE)
   end
 
-  def select_position_chest
-    monogram_lightbox.choose("pos_chest", :visible => FALSE)
-  end
-
-  def select_position_cuff_centre
-    monogram_lightbox.choose("pos_cuff_centre", :visible => FALSE)
-  end
-
-  def select_position_cuff_above_watch
-    monogram_lightbox.choose("pos_cuff_watch", :visible => FALSE)
-  end
-
-  def select_position_cuff_below_link
-    monogram_lightbox.choose("pos_cuff_link", :visible => FALSE)
+  def mg_position=(position)
+		@page.choose(@mg_position_radio_buttons[position], :visible => FALSE)
   end
 
   #-----------------------------------------------------------------------------------

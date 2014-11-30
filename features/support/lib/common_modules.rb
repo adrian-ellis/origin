@@ -129,6 +129,17 @@ module EnvMethods
     # Return filename. Note that Windows has file name limits so limit the length of filename we return
     return "#{time}-#{scenario_name}".slice(0, 150).gsub(/[\,\/]/, '.')
   end
+
+  def scenario_country(scenario)
+    # If this is a scenario outline (with associated scenario data in table form), search the scenario 'examples' or 'scenario' test data to determine country
+    if scenario.instance_of?(Cucumber::Ast::OutlineTable::ExampleRow)
+      # return the country if it can be found, otherwise default the country to 'GB'
+      (country = scenario.name[/.*\|\s*(GB|US|AU|DE)\s*\|.*/, 1]) ? country : 'GB'
+    else
+      # this is not a scenario outline so default the country to 'GB'
+      return 'GB'
+    end
+  end
 end
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -166,43 +177,91 @@ module Waiting
         fail "\nERROR: Element cannot be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if time_secs > PAGE_ELEMENT_TIMEOUT_SECS
         element_present = yield
         break if element_present
-        time_secs += time_secs + 0.5
+        sleep 0.5
+        time_secs += 0.5
       end
     rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
       puts "Trapped Exception: #{e} : Retrying"
       sleep 0.5
-      time_secs += time_secs + 0.5
+      time_secs += 0.5
       retry
     rescue Selenium::WebDriver::Error::ObsoleteElementError => e
       puts "Trapped Exception: #{e} : Retrying"
       sleep 0.5
-      time_secs += time_secs + 0.5
+      time_secs += 0.5
       retry
     end
   end
 
-  # Verify that the specified element (called in the block, from 'yield') exists on the page (ie. within the DOM).
-  # If the element can no longer be found within the because the DOM has changed (again), then catch the exception thrown,
-  # and then try to locate it again (ie. with a new reference to the element). Reload the URL if not found within 'time_limit' secs.
-  def reload_page_if_not_found(url, time_limit)
-    element_present = FALSE
+  def wait_until_element_not_present
+    element_present = TRUE
     time_secs = 0
     begin
-      while !element_present
-        break if time_secs > time_limit * 3
-        @page.visit(url) if time_secs > time_limit
+      while element_present
+        fail "\nERROR: Element is still present even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if time_secs > PAGE_ELEMENT_TIMEOUT_SECS
         element_present = yield
-        time_secs += time_secs + 0.5
+        break if !element_present
+        sleep 0.5
+        time_secs += 0.5
       end
     rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
       puts "Trapped Exception: #{e} : Retrying"
       sleep 0.5
-      time_secs += time_secs + 0.5
+      time_secs += 0.5
       retry
     rescue Selenium::WebDriver::Error::ObsoleteElementError => e
       puts "Trapped Exception: #{e} : Retrying"
       sleep 0.5
-      time_secs += time_secs + 0.5
+      time_secs += 0.5
+      retry
+    end
+  end
+
+  # Wait until the element (called in the block, from 'yield') appears on the page
+  def wait_until_has_selector(selector_expr)
+    element_present = FALSE
+    time_secs = 0
+    begin
+      while !element_present
+        fail "\nERROR: Element cannot be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if time_secs > PAGE_ELEMENT_TIMEOUT_SECS
+        break if @page.has_selector?(selector_expr)
+        sleep 0.5
+        time_secs += 0.5
+        puts "ELEMENT is NOT yet present..................................................#{time_secs} x 0.5 secs"
+      end
+    rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
+      puts "Trapped Exception: #{e} : Retrying"
+      sleep 0.5
+      time_secs += 0.5
+      retry
+    rescue Selenium::WebDriver::Error::ObsoleteElementError => e
+      puts "Trapped Exception: #{e} : Retrying"
+      sleep 0.5
+      time_secs += 0.5
+      retry
+    end
+  end
+
+  # Wait until the element (called in the block, from 'yield') disappears from the page
+  def wait_until_has_no_selector(selector_expr)
+    element_present = TRUE
+    time_secs = 0
+    begin
+      while element_present
+        fail "\nERROR: Element cannot be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if time_secs > PAGE_ELEMENT_TIMEOUT_SECS
+        break if !@page.has_selector?(selector_expr)
+        sleep 0.5
+        time_secs += 0.5
+      end
+    rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
+      puts "Trapped Exception: #{e} : Retrying"
+      sleep 0.5
+      time_secs += 0.5
+      retry
+    rescue Selenium::WebDriver::Error::ObsoleteElementError => e
+      puts "Trapped Exception: #{e} : Retrying"
+      sleep 0.5
+      time_secs += 0.5
       retry
     end
   end
@@ -223,30 +282,6 @@ module Waiting
   #########################################################################################################
   # EXPERIMENTS WITH THESE METHODS THAT USE BLOCKS to retry locating a given element after a timeout occurs
   #########################################################################################################
-  def retry_if_timed_out(waittime)
-    begin
-      Timeout::timeout(waittime)  do
-        yield
-      end
-    rescue Timeout::Error => e
-      puts "Page/Element load timed out: #{e} : retrying"
-      retry
-    end
-  end
-
-  # Wait up to 'time' in secs for that pesky element to appear
-  def wait_until(time)
-    time_secs = 0
-    element_found = FALSE
-    while !element_found
-      break if time_secs > time
-      element_found = yield
-      sleep 0.5
-      time_secs += 3.5 # use Time.now (secs) instead
-    end
-  end
-
-  # USE THIS ONE !!!!!!!
   def trap_error
     time_secs = 0
     begin
@@ -266,20 +301,6 @@ module Waiting
       retry
     end
   end
-
-  def trap_not_found
-    time_secs = 0
-    begin
-      yield
-    rescue Capybara::ElementNotFound => e
-      puts "\nError locating element: #{e} : retrying"
-      sleep 0.5
-      time_secs += 0.5
-      fail "\nCapybara::ElementNotFound => #{e}\n" if time_secs > 5.0
-      retry
-    end
-  end
-
 
 end
 

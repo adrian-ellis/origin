@@ -1,5 +1,3 @@
-require "#{Dir.pwd}/features/lib/common_modules"
-
 # the most common casual shirt size options
 ALL_CASUAL_SHIRT_SIZES = ["S","M","L","XL","XXL"]
 

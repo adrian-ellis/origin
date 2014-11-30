@@ -45,10 +45,6 @@ ENABLED_LOGGING           = TRUE
 # (eg. outputing the SKU's and names of shirts after sorting by price has been carried out on a product page)
 INDIVIDUAL_ITEM_LOGGING_ENABLED = FALSE
 
-# A switch that is used to redirect all calls to the Casual Shirts product page
-# to use the All Shirts product page instead
-# (ie. as there may just be a Casual shirts 'Department page' that does not list individual shirts)
-NO_CASUAL_SHIRTS_PRODUCT_LISTING_PAGE = FALSE
 
 ############################################################################################################################
 # Require the file that contains the EnvMethods module. Then 'extend' the World object (whose scope is per current scenario) to include this module.
@@ -59,7 +55,9 @@ NO_CASUAL_SHIRTS_PRODUCT_LISTING_PAGE = FALSE
 # will be assigned to the World, and can be accessed from other Step Definitions.
 ############################################################################################################################
 puts "current dir is #{Dir.pwd}\n"
-require_relative '../lib/common_modules'
+#require_relative 'global_constants'
+#require_relative 'common_modules'
+#require_relative '../../lib/common_modules'
 require_relative '../database/active_record_classes'
 #World(Capybara::DSL, EnvMethods, BooleanExpectations)
 
@@ -119,6 +117,9 @@ else
   end
 end
 
+# Initialise PREV_COUNTRY
+ENV['PREV_COUNTRY'] = ''
+
 #Capybara.default_wait_time=10
 
 # Create a custom world (class) and create an new instance of this class.
@@ -167,11 +168,20 @@ Before do |scenario|
 
   # create 'logs' directory if needed. Then create a log file (whose name is based on the scenario and timestamp) in thia directory
   Dir.mkdir("logs") unless File.directory?("logs")
-	ENV['LOGFILE'] ||= %Q(logs/#{scenario_name(scenario)}.log)
+	ENV['LOGFILE'] = %Q(logs/#{scenario_name(scenario)}.log)
 	File.new(ENV['LOGFILE'], 'w')
+
+  # Determine if website 'country' has changed since from the previous scenario.
+  puts "\n\nCOUNTY WEBSITE IS '#{scenario_country(scenario)}'"
+  ENV['CURRENT_COUNTRY'] = scenario_country(scenario)
+  ((ENV['CURRENT_COUNTRY'] != ENV['PREV_COUNTRY']) && ENV['PREV_COUNTRY'].empty?) ? ENV['CHANGED_COUNTRY'] = 'T' : ENV['CHANGED_COUNTRY'] = 'F'
+  puts "change of country = #{ENV['CHANGED_COUNTRY']}"
 end
 
 After do |scenario|
+  # Store this as the previous scenario's country
+  ENV['PREV_COUNTRY'] = scenario_country(scenario)
+
   record_results = TRUE
   if scenario.failed? && record_results
     # create directory to store screenshots if needed. Then store the screenshot (whose name is based on the scenario and timestamp) in the 'screenshots' directory

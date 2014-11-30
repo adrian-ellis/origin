@@ -1,9 +1,4 @@
 class SearchNoResultsPage
-  # include common methods for page object classes (located in common_modules.rb)
-  include CommonPageMethods
-  include Waiting
-  include TeliumTags
-
   #######################################################################
   # define page object methods on the search results page
   #######################################################################

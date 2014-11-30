@@ -1,5 +1,3 @@
-require_relative '../lib/common_modules'
-
 class AllShirtsPage
 
   # include common methods for page object classes (located in common_modules.rb)
