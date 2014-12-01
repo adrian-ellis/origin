@@ -15,7 +15,7 @@ end
 namespace "features" do
   task "default_ff_json" do
 		# Run cucumber from within a shell. By doing it this way the task running "default_firefox..." can then handle what happens when an error occurs
-		sh "cucumber -p default_firefox_json"
+		sh "cucumber -p default_firefox_json" do
     # Ignore any errors generated from the task. This is the reason why we run from within a shell.
     end
   end
