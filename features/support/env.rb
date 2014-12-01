@@ -117,9 +117,6 @@ else
   end
 end
 
-# Initialise PREV_COUNTRY
-ENV['PREV_COUNTRY'] = ''
-
 #Capybara.default_wait_time=10
 
 # Create a custom world (class) and create an new instance of this class.
@@ -171,17 +168,11 @@ Before do |scenario|
 	ENV['LOGFILE'] = %Q(logs/#{scenario_name(scenario)}.log)
 	File.new(ENV['LOGFILE'], 'w')
 
-  # Determine if website 'country' has changed since from the previous scenario.
-  puts "\n\nCOUNTY WEBSITE IS '#{scenario_country(scenario)}'"
+  # Determine if the current scenario's website 'country' is 'GB'
   ENV['CURRENT_COUNTRY'] = scenario_country(scenario)
-  ((ENV['CURRENT_COUNTRY'] != ENV['PREV_COUNTRY']) && ENV['PREV_COUNTRY'].empty?) ? ENV['CHANGED_COUNTRY'] = 'T' : ENV['CHANGED_COUNTRY'] = 'F'
-  puts "change of country = #{ENV['CHANGED_COUNTRY']}"
 end
 
 After do |scenario|
-  # Store this as the previous scenario's country
-  ENV['PREV_COUNTRY'] = scenario_country(scenario)
-
   record_results = TRUE
   if scenario.failed? && record_results
     # create directory to store screenshots if needed. Then store the screenshot (whose name is based on the scenario and timestamp) in the 'screenshots' directory

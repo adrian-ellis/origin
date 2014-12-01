@@ -40,7 +40,7 @@ class HomePage
       # If the 'Your Location' lightbox appears because we loaded a different country's website (ie. not GB), select the country link from the lightbox,
       # and wait for the page to load
       # NOTE: DOESNT WORK IN 'IE' AS div(:id => 'country-popup') contains a reference to a JQuery that needs to run instead of a link to click on !!!!!
-      if ENV['CHANGED_COUNTRY'] == 'T'
+      if ENV['CURRENT_COUNTRY'] != 'GB'
         wait_until_has_selector(@popup)
         @page.all(@popups_change_country_link).first.click
         wait_until_has_no_selector(@popup)

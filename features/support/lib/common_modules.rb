@@ -227,7 +227,6 @@ module Waiting
         break if @page.has_selector?(selector_expr)
         sleep 0.5
         time_secs += 0.5
-        puts "ELEMENT is NOT yet present..................................................#{time_secs} x 0.5 secs"
       end
     rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
       puts "Trapped Exception: #{e} : Retrying"

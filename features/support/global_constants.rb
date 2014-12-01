@@ -5,7 +5,6 @@ ALL_MG_FONTS = ['brush script', 'circle', 'clarendon', 'diamond', 'old english',
 ALL_MG_COLOURS = ['black', 'burgundy', 'purple', 'navy', 'royal blue', 'light blue', 'racing green', 'red', 'pink', 'grey', 'yellow', 'white']
 ALL_MG_POSITIONS = ['chest (left)', 'cuff centre', 'cuff above watch', 'cuff below link']
 
-
 ########################################################################################################################################################################
 ################################################ All Constants needed by MODULE CommonPageMethods ######################################################################
 ########################################################################################################################################################################
