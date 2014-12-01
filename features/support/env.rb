@@ -117,6 +117,9 @@ else
   end
 end
 
+# set flag for determining whether or not this is the first scenario to be run (from cucumber)
+ENV['FIRST_RUN'] = 'T'
+
 #Capybara.default_wait_time=10
 
 # Create a custom world (class) and create an new instance of this class.
@@ -159,8 +162,8 @@ Before do |scenario|
     @page = page
 		# clear cookies (by reseting the browser in current session)
 		#Capybara.current_session.driver.browser.manage.delete_all_cookies
-		Capybara.current_session.reset!
-    Capybara.current_session.current_window.maximize
+    Capybara.current_session.reset! if ENV['FIRST_RUN'] == 'F'
+    Capybara.current_session.current_window.maximize if ENV['FIRST_RUN'] == 'T'
   end
 
   # create 'logs' directory if needed. Then create a log file (whose name is based on the scenario and timestamp) in thia directory
@@ -173,6 +176,9 @@ Before do |scenario|
 end
 
 After do |scenario|
+  # set flag to FALSE ('F') as the first scenario has now been run
+  ENV['FIRST_RUN'] = 'F'
+
   record_results = TRUE
   if scenario.failed? && record_results
     # create directory to store screenshots if needed. Then store the screenshot (whose name is based on the scenario and timestamp) in the 'screenshots' directory
@@ -187,7 +193,9 @@ After do |scenario|
     Dir.mkdir("results") unless File.directory?("results")
     file_name_html = scenario_name(scenario) + '.html'
     FileUtils.copy('results.html', "results/#{file_name_html}")
-	end
+  end
+  Capybara.current_session.reset!
+
 end
 
 at_exit do

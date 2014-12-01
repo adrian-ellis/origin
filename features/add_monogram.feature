@@ -15,9 +15,9 @@ Feature: Add a monogram to the shirt displayed on the product detail page
   Examples:
     | country | product_item_code |
     |   US    |     SN112SKY      |
-    |   AU    |     SN112SKY      |
-    |   GB    |     SN112SKY      |
-    |   DE    |     SN112SKY      |
+    |   AU    |     FN017WHT      |
+    |   GB    |     SN061WHT      |
+    |   DE    |     RG049SKY      |
 
   Scenario Outline: Add a monogram to a suitable (formal or evening) shirt displayed on the product page
     Given I am using the "<country>" website
@@ -33,11 +33,11 @@ Feature: Add a monogram to the shirt displayed on the product detail page
 
   Examples:
     | country | product_item_code |  font          | colour        | position           |  initials  |
-    |   GB    |      SN112SKY     |  circle        | royal blue    | chest (left)       |    ADE     |
-    |   AU    |      SN112SKY     |  Brush script  | navy          | cuff centre        |    LP12    |
-    |   GB    |      SN112SKY     |  Brush script  | navy          | cuff centre        |    LP12    |
-    |   US    |      SN112SKY     | sports script  | racing green  | cuff above watch   |    xGTx    |
-    |   DE    |      SN112SKY     | sports script  | racing green  | cuff above watch   |    xGTx    |
-    |   AU    |      SN112SKY     |  circle        | royal blue    | chest (left)       |    ADE     |
+    |   GB    |      SP043WHT     |  circle        | royal blue    | chest (left)       |    ADE     |
+    |   AU    |      FC287SKY     |  Brush script  | navy          | cuff centre        |    LP12    |
+    |   GB    |      SE059WHT     |  Brush script  | navy          | cuff centre        |    LP12    |
+    |   US    |      SV040SKY     | sports script  | racing green  | cuff above watch   |    xGTx    |
+    |   DE    |      SN439BLU     | sports script  | racing green  | cuff above watch   |    xGTx    |
+    |   AU    |      SN444WHT     |  circle        | royal blue    | chest (left)       |    ADE     |
 
 

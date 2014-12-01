@@ -12,9 +12,9 @@ class HomePage
   def initialize(page,country)
     @page = page
     @country = country
-    @popups_last_link = %Q(div#country-popup div.pick-another a[href*="/Country/Change/"])  # css expr for the last *set* of links in the change country lightbox
     @popup = 'div#country-popup'  # css expr for the change country we must click on
-    @popups_change_country_link = %Q(div#country-popup a[href="/Country/Change/#{@country}"])  # css expr for the change country we must click on
+    @popups_last_change_country_link = %Q(div#country-popup div.pick-another a[href="/Country/Change/#{@country}"])  # css expr for the last *set* of links in the change country lightbox
+    @popups_first_change_country_link = %Q(div#country-popup a[href="/Country/Change/#{@country}"])  # css expr for the change country we must click on
     @country_code = {'GB' => ["#{BASE_LIVE_URL_GB}", 'gbp'], 'US' => ["#{BASE_LIVE_URL_US}", 'usd'], 'AU' => ["#{BASE_LIVE_URL_AU}", 'aud'], 'DE' => ["#{BASE_LIVE_URL_DE}", 'dm']}
     @counter = 0
     fail "ERROR: Invalid country \'#{@country}\' specified when attempting to load home page." if !@country_code.has_key?(@country)
@@ -42,7 +42,7 @@ class HomePage
       # NOTE: DOESNT WORK IN 'IE' AS div(:id => 'country-popup') contains a reference to a JQuery that needs to run instead of a link to click on !!!!!
       if ENV['CURRENT_COUNTRY'] != 'GB'
         wait_until_has_selector(@popup)
-        @page.all(@popups_change_country_link).first.click
+        @page.find(@popups_last_change_country_link).click
         wait_until_has_no_selector(@popup)
       end
     end
