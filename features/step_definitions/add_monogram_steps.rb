@@ -71,22 +71,28 @@ end
 And /^the monogram summary details for "(.*?)", "(.*?)", "(.*?)" and "(.*?)" are displayed next to the Add Monogram checkbox on the product item detail page$/ do |font, colour, position, initials|
   expect(@detailPage.monogram_description_displayed?).to be(TRUE)
   expect(@detailPage.monogram_description.empty?).to be(FALSE)
+  puts("MONOGRAM DESCRIPTION = '#{@detailPage.monogram_description}'") if ENABLED_LOGGING
   log("MONOGRAM DESCRIPTION = '#{@detailPage.monogram_description}'") if ENABLED_LOGGING
 
   # The monogram text description eg. "You selected: brush script,black,\"AQA\",chest"
   # is delimited by commas so we SPLIT it into 4 parts, and then compensate for the \"<initials>\" component
-  monogram_desc = @detailPage.monogram_description.sub(/You selected:\s*/,'').split ','
-  font_displayed = monogram_desc[0]
-  colour_displayed = monogram_desc[1]
-  initials_displayed = monogram_desc[2].gsub("\\",'')
-  position_displayed = monogram_desc[3]
-
-  # wrap " " around initials to match the monogram text description displayed on the web page
-  #initials_str = '"' + initials + '"'
+  if @country != 'DE'
+    monogram_desc = @detailPage.monogram_description.sub(/You selected:\s*/,'').split ','
+  else
+    monogram_desc = @detailPage.monogram_description.sub(/Ihre Einstellung:\s*/,'').split ','
+  end
+  font_displayed = monogram_desc[0].lstrip.rstrip
+  colour_displayed = monogram_desc[1].lstrip.rstrip
+  initials_displayed = monogram_desc[2].gsub(%q("),'').lstrip.rstrip
+  position_displayed = monogram_desc[3].lstrip.rstrip
 
   # now compare the monogram text description with the values from the scenario data table
   expect(font.downcase).to eq(font_displayed.downcase)
   expect(colour.downcase).to eq(colour_displayed.downcase)
-  expect(initials.downcase).to eq(%Q("#{initials_displayed}").downcase)
-  expect(position.downcase).to eq(position_displayed.downcase)
+  expect(initials.downcase).to eq(initials_displayed.downcase)
+  if (@country != 'DE')
+    expect(position.downcase).to eq(position_displayed.downcase)
+  else
+    expect(ALL_MG_POSITIONS_DE[position].downcase).to eq(position_displayed.sub(/.ber/,'uber').downcase)
+  end
 end

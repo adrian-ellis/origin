@@ -3,7 +3,7 @@ Feature: Add a monogram to the shirt displayed on the product detail page
   As a customer
   I would like to add a monogram to any suitable (formal or evening) shirt displayed on the product page
   So that I can customise the clothing item that I want to buy to suit my own needs.
-
+  @ignore
   Scenario Outline: verify the Add monogram lightbox appears for a suitable (formal or evening) shirt
     Given I am using the "<country>" website
     And I am on the product item detail page for a formal shirt "<product_item_code>"
@@ -33,11 +33,11 @@ Feature: Add a monogram to the shirt displayed on the product detail page
 
   Examples:
     | country | product_item_code |  font          | colour        | position           |  initials  |
-    |   GB    |      SP043WHT     |  circle        | royal blue    | chest (left)       |    ADE     |
-    |   AU    |      FC287SKY     |  Brush script  | navy          | cuff centre        |    LP12    |
-    |   GB    |      SE059WHT     |  Brush script  | navy          | cuff centre        |    LP12    |
-    |   US    |      SV040SKY     | sports script  | racing green  | cuff above watch   |    xGTx    |
     |   DE    |      SN439BLU     | sports script  | racing green  | cuff above watch   |    xGTx    |
+    |   GB    |      SP043WHT     |  circle        | royal blue    | chest (left)       |    ADE     |
+    |   DE    |      FC287SKY     |  Brush script  | navy          | cuff centre        |    LP12    |
+    |   DE    |      SE059WHT     |  circle        | navy          | cuff below link    |    RPM     |
+    |   US    |      SV040SKY     | sports script  | racing green  | cuff above watch   |    xGTx    |
     |   AU    |      SN444WHT     |  circle        | royal blue    | chest (left)       |    ADE     |
 
 

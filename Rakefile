@@ -41,7 +41,7 @@ end
 
 # the default task here runs any other tasks already defined.
 task "default" do
-  %W[features:default_ff_html features:default_ff_json features:monogram_ff_html].each do |task_name|
+  %W[features:monogram_ff_html features:default_ff_html features:default_ff_json].each do |task_name|
     sh "rake #{task_name}" do
 			# Ignore any errors generated from the task. This is the reason why we run from within a shell.
 		end
