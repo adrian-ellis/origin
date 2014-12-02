@@ -52,6 +52,9 @@ When /^I make a selection for "(.*?)", "(.*?)" and "(.*?)" and enter text into "
 end
 
 And /^I click on the Add Monogram button$/ do
+  puts "\nERROR: Add Mono button not visible in lbox" if !@detailPage.add_monogram_button_displayed?
+  execute_script("$('img#ctl00_contentBody_ctl02_ctl00_addMono').trigger('focus')")
+  puts "\nSTILL ERROR!!!: Add Mono button not visible in lbox" if !@detailPage.add_monogram_button_displayed?
   @detailPage.confirm_add_monogram
 end
 
