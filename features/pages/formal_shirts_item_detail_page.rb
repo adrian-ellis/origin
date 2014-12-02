@@ -427,7 +427,7 @@ class FormalShirtsItemDetailPage
   end
 
   def confirm_add_monogram
-    monogram_lightbox.find('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => FALSE).click
+    monogram_lightbox.find('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => TRUE).click
   end
 
   # initials text box
