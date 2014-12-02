@@ -48,6 +48,29 @@ module BooleanExpectations
     expect(arg).to be FALSE
   end
 end
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+######################################################################################################################################################
+# MODULE CONTAINING Methods used for accessing hash keys
+######################################################################################################################################################
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+class Hash
+  def has_key_like?(arg)
+    self.select do |key, value|
+      return TRUE if (key.downcase.include? arg)
+    end
+    return FALSE
+  end
+
+  def value_for_key_like(arg)
+    result = []
+    self.select do |key, value|
+      result = value if (key.downcase.include? arg)
+    end
+    return result
+  end
+end
+
 #-----------------------------------------------------------------------------------------------------------------------------------------------------
 ######################################################################################################################################################
 # MODULE CONTAINING Methods used to add custom Capybara selectors. These can be used to locate elements without writing complex XPath or CSS expressions.
@@ -113,21 +136,30 @@ end
 ######################################################################################################################################################
 #-----------------------------------------------------------------------------------------------------------------------------------------------------
 module EnvMethods
+  def scenario_has_examples?(scenario)
+    scenario.instance_of?(Cucumber::Ast::OutlineTable::ExampleRow)
+  end
+
+  def example(scenario)
+    scenario.name
+  end
+
   # Construct a filename (used for naming test results files) based on the Scenario name and timestamp
   def scenario_name(scenario)
     # If this is a scenario outline (with associated scenario data in table form), the scenario name is a combination of outline name and scenario data
     if scenario.instance_of?(Cucumber::Ast::OutlineTable::ExampleRow)
-      scenario_name = scenario.scenario_outline.name.gsub(/[^\w\-]/, ' ')     # replace any non-word characters with spaces
-      scenario_name += "-Example#{scenario.name.gsub(/\s*\|\s*/, '-')}".chop  # replace the ' | ' with '-' characters
+      keywords = 'a|A|the|The'                                                                          # define any keywords we want to be removed from the scenario outline's name
+      scenario_name = scenario.scenario_outline.name.gsub(/\s(#{keywords})\s/,' ').gsub(/[^\w]+/, '_')  # replace keywords and 1 or more non-word characters an with underscore
+      scenario_name += "-Example#{scenario.name.gsub(/\s*\|\s*/, '-')}".gsub(/[^\w]+/, '-').chop        # also in scenario data replace them and ' | ' with '-' characters
     else
-      scenario_name = scenario.name.gsub(/[^\w\-]/, ' ')
+      scenario_name = scenario.name.gsub(/[^\w]+/, '_')
     end
 
     # Get current date and time
     time = Time.now.strftime("%Y-%m-%d-%H%M%S")
 
-    # Return filename. Note that Windows has file name limits so limit the length of filename we return
-    return "#{time}-#{scenario_name}".slice(0, 150).gsub(/[\,\/]/, '.')
+    # Return the pathname for this file. Truncate the name of the file based on the length of the basename. This is because Windows has file name limits.
+    return "#{time}-#{scenario_name}".gsub(/[\,\/]/, '.').slice(0, 135 - PWD.length)
   end
 
   def scenario_country(scenario)

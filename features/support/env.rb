@@ -45,48 +45,11 @@ ENABLED_LOGGING           = TRUE
 # (eg. outputing the SKU's and names of shirts after sorting by price has been carried out on a product page)
 INDIVIDUAL_ITEM_LOGGING_ENABLED = FALSE
 
+# set flag for determining whether or not this is the first scenario to be run (from cucumber)
+ENV['FIRST_RUN'] = 'T'
+PWD = Dir.pwd
 
-############################################################################################################################
-# Require the file that contains the EnvMethods module. Then 'extend' the World object (whose scope is per current scenario) to include this module.
-# This module contains methods used to create screen dumps # and save test results to files in appropriately named subdirectories
-############################################################################################################################
-# NOTE: All Step Definitions will run in the context of the current World instance. (A new instance is created for each scenario).
-# This means that self in a Step Definition block will be the World instance. Any @instance_variable instantiated in a Step Definition
-# will be assigned to the World, and can be accessed from other Step Definitions.
-############################################################################################################################
-puts "current dir is #{Dir.pwd}\n"
-#require_relative 'global_constants'
-#require_relative 'common_modules'
-#require_relative '../../lib/common_modules'
 require_relative '../database/active_record_classes'
-#World(Capybara::DSL, EnvMethods, BooleanExpectations)
-
-# Instead of including methods from modules (eg. EnvMethods) so we can use these methods (eg. scenario_name) within the World object,
-# We can create an instance of CustomWorld (class). This is very powerful!! We can now use any methods (included from other Modules too!),
-# or variables within this Class instance *in any step definition*
-#-----------------------------------------------------------------------------------------------------------------------------------------------------
-######################################################################################################################################################
-# MODULE CONTAINING Methods used for accessing hash keys
-######################################################################################################################################################
-#-----------------------------------------------------------------------------------------------------------------------------------------------------
-class Hash
-  def has_key_like?(arg)
-    self.select do |key, value|
-      return TRUE if (key.downcase.include? arg)
-    end
-    return FALSE
-  end
-
-  def value_for_key_like(arg)
-    result = []
-    self.select do |key, value|
-      result = value if (key.downcase.include? arg)
-    end
-    return result
-  end
-end
-
-
 
 ##################################################################################################################
 ### Register a capybara browser driver eg. selenium (along with the browser type you want it to drive eg. chrome).
@@ -117,32 +80,10 @@ else
   end
 end
 
-# set flag for determining whether or not this is the first scenario to be run (from cucumber)
-ENV['FIRST_RUN'] = 'T'
 
-#Capybara.default_wait_time=10
-
-# Create a custom world (class) and create an new instance of this class.
-# This is an alternative to extending 'World' to include just the modules we want to use.
 World do
   CustomWorld.new
 end
-
-##################################
-#def register_driver(name, &block)
-#  drivers[name] = block
-#end
-#def drivers
-#  @drivers ||= {}
-#end
-######################################################
-# So @drivers gives you a list of drivers you can run.
-######################################################
-
-#Capybara.current_driver = :selenium_firefox
-#session = Capybara.current_session
-#session = Capybara::Session.new(:selenium_firefox)
-##################################
 
 Before do |scenario|
   case ENV['BROWSER']
@@ -162,7 +103,6 @@ Before do |scenario|
     @page = page
 		# clear cookies (by reseting the browser in current session)
 		#Capybara.current_session.driver.browser.manage.delete_all_cookies
-    Capybara.current_session.reset! if ENV['FIRST_RUN'] == 'F'
     Capybara.current_session.current_window.maximize if ENV['FIRST_RUN'] == 'T'
   end
 
@@ -183,19 +123,22 @@ After do |scenario|
   if scenario.failed? && record_results
     # create directory to store screenshots if needed. Then store the screenshot (whose name is based on the scenario and timestamp) in the 'screenshots' directory
     Dir.mkdir("screenshots") unless File.directory?("screenshots")
-    file_name_png = scenario_name(scenario) + '.png'
-    page.save_screenshot("screenshots/#{file_name_png}")
+    scenario_file_name = scenario_name(scenario)
+    page.save_screenshot("screenshots/#{scenario_file_name}.png")
 
-    # attach a screenshot to the results file defined in the cucumber profile (inside the cucumber.yml file)
-    embed("screenshots/#{file_name_png}", 'image/png','screenshot')
+    # determine whether scenario is a scenario outline, then embed the screenshot with label name based on scenario name or example row.
+    scenario_has_examples?(scenario) ? label = "Screenshot for Example: #{example(scenario)}" : label = "Scenario Screenshot"
+    embed(%Q(#{PWD}/screenshots/#{scenario_file_name}.png), 'image/png', label)
 
-		# create 'results' directory if needed. Then copy the results file (whose name is based on the scenario and timestamp) to thia directory
+		# create 'results' directory if needed. Then copy the results file to thia directory
     Dir.mkdir("results") unless File.directory?("results")
-    file_name_html = scenario_name(scenario) + '.html'
-    FileUtils.copy('results.html', "results/#{file_name_html}")
+    FileUtils.copy('results.html', "results/#{scenario_file_name}.html")
+    sleep 5
   end
-  Capybara.current_session.reset!
 
+  unless ENV['BROWSER'] == "none"
+    Capybara.current_session.reset! if (Capybara.current_session != nil)
+  end
 end
 
 at_exit do

@@ -1,5 +1,3 @@
-#require_relative '../lib/common_modules'
-
 class CustomWorld
   include Capybara::DSL
   include CapybaraCustomSelectors

@@ -57,6 +57,7 @@ And /^I click on the Add Monogram button$/ do
 end
 
 Then /^the Add Monogram lightbox closes$/ do
+  sleep 2
   expect(@detailPage.monogram_lightbox_displayed?).to be(FALSE)
 end
 
@@ -81,8 +82,9 @@ And /^the monogram summary details for "(.*?)", "(.*?)", "(.*?)" and "(.*?)" are
   else
     monogram_desc = @detailPage.monogram_description.sub(/Ihre Einstellung:\s*/,'').split ','
   end
-  font_displayed = monogram_desc[0].lstrip.rstrip
-  colour_displayed = monogram_desc[1].lstrip.rstrip
+  font_displayed = monogram_desc[0]
+  #colour_displayed = monogram_desc[1].lstrip.rstrip
+  colour_displayed = monogram_desc[1]
   initials_displayed = monogram_desc[2].gsub(%q("),'').lstrip.rstrip
   position_displayed = monogram_desc[3].lstrip.rstrip
 
