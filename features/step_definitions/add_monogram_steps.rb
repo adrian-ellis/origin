@@ -49,7 +49,6 @@ When /^I make a selection for "(.*?)", "(.*?)" and "(.*?)" and enter text into "
 	@detailPage.mg_position = position.downcase
 
   @detailPage.mg_initials = initials
-  sleep 3
 end
 
 And /^I click on the Add Monogram button$/ do
@@ -57,7 +56,6 @@ And /^I click on the Add Monogram button$/ do
 end
 
 Then /^the Add Monogram lightbox closes$/ do
-  sleep 2
   expect(@detailPage.monogram_lightbox_displayed?).to be(FALSE)
 end
 

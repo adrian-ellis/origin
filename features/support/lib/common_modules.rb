@@ -159,7 +159,7 @@ module EnvMethods
     time = Time.now.strftime("%Y-%m-%d-%H%M%S")
 
     # Return the pathname for this file. Truncate the name of the file based on the length of the basename. This is because Windows has file name limits.
-    return "#{time}-#{scenario_name}".gsub(/[\,\/]/, '.').slice(0, 135 - PWD.length)
+    return "#{time}-#{scenario_name}".gsub(/[\,\/]/, '.').slice(0, 130)
   end
 
   def scenario_country(scenario)

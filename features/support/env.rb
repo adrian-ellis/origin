@@ -60,23 +60,23 @@ require_relative '../database/active_record_classes'
 ##################################################################################################################
 case ENV['BROWSER']
 when "chrome"
-  Capybara.register_driver :selenium_chrome do |app|
-    Capybara::Selenium::Driver.new(app, :browser => :chrome)
+  Capybara.register_driver :selenium_chrome do
+    Capybara::Selenium::Driver.new(:browser => :chrome)
   end
 when "firefox"
-  Capybara.register_driver :selenium_firefox do |app|
-    Capybara::Selenium::Driver.new(app, :browser => :firefox)
+  Capybara.register_driver :selenium_firefox do
+    Capybara::Selenium::Driver.new(:browser => :firefox)
   end
 when "ie"
-  Capybara.register_driver :selenium_ie do |app|
-    Capybara::Selenium::Driver.new(app, :browser => :ie)
+  Capybara.register_driver :selenium_ie do
+    Capybara::Selenium::Driver.new(:browser => :ie)
   end
 when "none"
   # don't register a driver
   puts 'INFO: No need to open a browser\n'
 else
-  Capybara.register_driver :selenium_firefox do |app|
-    Capybara::Selenium::Driver.new(app, :browser => :firefox)
+  Capybara.register_driver :selenium_firefox do
+    Capybara::Selenium::Driver.new(:browser => :firefox)
   end
 end
 
@@ -128,12 +128,11 @@ After do |scenario|
 
     # determine whether scenario is a scenario outline, then embed the screenshot with label name based on scenario name or example row.
     scenario_has_examples?(scenario) ? label = "Screenshot for Example: #{example(scenario)}" : label = "Scenario Screenshot"
-    embed(%Q(#{PWD}/screenshots/#{scenario_file_name}.png), 'image/png', label)
+    embed("screenshots/#{scenario_file_name}.png", 'image/png', label)
 
 		# create 'results' directory if needed. Then copy the results file to thia directory
     Dir.mkdir("results") unless File.directory?("results")
     FileUtils.copy('results.html', "results/#{scenario_file_name}.html")
-    sleep 5
   end
 
   unless ENV['BROWSER'] == "none"
