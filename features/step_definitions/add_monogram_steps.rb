@@ -72,7 +72,7 @@ end
 And /^the monogram summary details for "(.*?)", "(.*?)", "(.*?)" and "(.*?)" are displayed next to the Add Monogram checkbox on the product item detail page$/ do |font, colour, position, initials|
   expect(@detailPage.monogram_description_displayed?).to be(TRUE)
   expect(@detailPage.monogram_description.empty?).to be(FALSE)
-  puts("MONOGRAM DESCRIPTION = '#{@detailPage.monogram_description}'") if ENABLED_LOGGING
+  #puts("MONOGRAM DESCRIPTION = '#{@detailPage.monogram_description}'") if ENABLED_LOGGING
   log("MONOGRAM DESCRIPTION = '#{@detailPage.monogram_description}'") if ENABLED_LOGGING
 
   # The monogram text description eg. "You selected: brush script,black,\"AQA\",chest"
@@ -83,8 +83,8 @@ And /^the monogram summary details for "(.*?)", "(.*?)", "(.*?)" and "(.*?)" are
     monogram_desc = @detailPage.monogram_description.sub(/Ihre Einstellung:\s*/,'').split ','
   end
   font_displayed = monogram_desc[0]
-  #colour_displayed = monogram_desc[1].lstrip.rstrip
-  colour_displayed = monogram_desc[1]
+  colour_displayed = monogram_desc[1].lstrip.rstrip
+  #colour_displayed = monogram_desc[1]
   initials_displayed = monogram_desc[2].gsub(%q("),'').lstrip.rstrip
   position_displayed = monogram_desc[3].lstrip.rstrip
 
