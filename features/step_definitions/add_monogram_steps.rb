@@ -53,9 +53,10 @@ end
 
 And /^I click on the Add Monogram button$/ do
   # problem with focus within browser page before we click on the add monogram button, so use some jquery to focus on the button
-  2.times do
-    execute_script("$('img#ctl00_contentBody_ctl02_ctl00_addMono').trigger('focus')")
-    @detailPage.confirm_add_monogram
+  ret = evaluate_script("$('fieldset#monogram img#ctl00_contentBody_ctl02_ctl00_addMono').trigger('focus')")
+  @detailPage.confirm_add_monogram
+  while @page.has_selector?('fieldset#monogram', :visible => TRUE)# || @page.has_selector?('fieldset#monogram', :visible => FALSE)
+    sleep 0.5
   end
 end
 

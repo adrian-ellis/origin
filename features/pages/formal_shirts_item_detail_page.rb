@@ -414,26 +414,25 @@ class FormalShirtsItemDetailPage
   ####################################################################################
   #-----------------------------------------------------------------------------------
   def monogram_lightbox_displayed?
-    @page.has_selector?('fieldset#monogram')
+    @page.has_selector?('fieldset#monogram', :visible => TRUE)
   end
 
   def monogram_lightbox
-    @page.find('fieldset#monogram')
+    @page.find('fieldset#monogram', :visible => TRUE)
   end
 
   # add monogram button  (located at the bottom of the lightbox)
   def add_monogram_button_displayed?
-    monogram_lightbox.has_selector?('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => FALSE)
+    @page.has_selector?('fieldset#monogram img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => FALSE)
   end
 
   def confirm_add_monogram
-    monogram_lightbox.find('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => FALSE).click
+    @page.find('fieldset#monogram img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => FALSE).click
   end
 
   # initials text box
   def mg_initials=(text)
-    #initials_text_box was monogram_lightbox.text_field(:id => "ctl00_contentBody_ctl02_ctl00_mg_initials")
-    monogram_lightbox.fill_in('ctl00_contentBody_ctl02_ctl00_mg_initials', :with => text)
+    @page.fill_in('ctl00_contentBody_ctl02_ctl00_mg_initials', :with => text)
   end
 
   ##########################################################################

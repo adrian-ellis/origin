@@ -60,23 +60,23 @@ require_relative '../database/active_record_classes'
 ##################################################################################################################
 case ENV['BROWSER']
 when "chrome"
-  Capybara.register_driver :selenium_chrome do
-    Capybara::Selenium::Driver.new(:browser => :chrome)
+  Capybara.register_driver :selenium_chrome do |app|
+    Capybara::Selenium::Driver.new(app, :browser => :chrome)
   end
 when "firefox"
-  Capybara.register_driver :selenium_firefox do
-    Capybara::Selenium::Driver.new(:browser => :firefox)
+  Capybara.register_driver :selenium_firefox do |app|
+    Capybara::Selenium::Driver.new(app, :browser => :firefox)
   end
 when "ie"
-  Capybara.register_driver :selenium_ie do
-    Capybara::Selenium::Driver.new(:browser => :ie)
+  Capybara.register_driver :selenium_ie do |app|
+    Capybara::Selenium::Driver.new(app, :browser => :ie)
   end
 when "none"
   # don't register a driver
   puts 'INFO: No need to open a browser\n'
 else
-  Capybara.register_driver :selenium_firefox do
-    Capybara::Selenium::Driver.new(:browser => :firefox)
+  Capybara.register_driver :selenium_firefox do |app|
+    Capybara::Selenium::Driver.new(app, :browser => :firefox)
   end
 end
 
@@ -98,6 +98,7 @@ Before do |scenario|
   else
     Capybara.current_driver = :selenium_firefox
   end
+  puts "Running in '#{Capybara.current_driver}' browser"
 
   unless ENV['BROWSER'] == "none"
     @page = page

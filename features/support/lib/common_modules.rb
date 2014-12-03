@@ -279,7 +279,7 @@ module Waiting
     time_secs = 0
     begin
       while element_present
-        fail "\nERROR: Element cannot be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if time_secs > PAGE_ELEMENT_TIMEOUT_SECS
+        fail "\nERROR: Element can still be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if time_secs > PAGE_ELEMENT_TIMEOUT_SECS
         break if !@page.has_selector?(selector_expr)
         sleep 0.5
         time_secs += 0.5
