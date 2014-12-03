@@ -54,9 +54,9 @@ end
 And /^I click on the Add Monogram button$/ do
   puts "\nERROR: Add Mono button not visible in lbox" unless (@page.has_selector?('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => TRUE) || !@page.has_selector?('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => FALSE))
   sleep 5
-  100.times do
-  execute_script("$('img#ctl00_contentBody_ctl02_ctl00_addMono').trigger('focus')")
-  end
+#  100.times do
+#  execute_script("$('img#ctl00_contentBody_ctl02_ctl00_addMono').trigger('focus')")
+#  end
   puts "\nSTILL ERROR!!!!: Add Mono button not visible in lbox" unless (@page.has_selector?('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => TRUE) || !@page.has_selector?('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => FALSE))
   @detailPage.confirm_add_monogram
 end
