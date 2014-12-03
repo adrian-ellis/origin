@@ -52,9 +52,12 @@ When /^I make a selection for "(.*?)", "(.*?)" and "(.*?)" and enter text into "
 end
 
 And /^I click on the Add Monogram button$/ do
-  puts "\nERROR: Add Mono button not visible in lbox" if !@detailPage.add_monogram_button_displayed?
+  puts "\nERROR: Add Mono button not visible in lbox" unless (@page.has_selector?('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => TRUE) || !@page.has_selector?('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => FALSE))
+  sleep 5
+  100.times do
   execute_script("$('img#ctl00_contentBody_ctl02_ctl00_addMono').trigger('focus')")
-  puts "\nSTILL ERROR!!!: Add Mono button not visible in lbox" if !@detailPage.add_monogram_button_displayed?
+  end
+  puts "\nSTILL ERROR!!!!: Add Mono button not visible in lbox" unless (@page.has_selector?('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => TRUE) || !@page.has_selector?('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => FALSE))
   @detailPage.confirm_add_monogram
 end
 
