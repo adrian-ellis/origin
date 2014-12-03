@@ -52,13 +52,11 @@ When /^I make a selection for "(.*?)", "(.*?)" and "(.*?)" and enter text into "
 end
 
 And /^I click on the Add Monogram button$/ do
-  puts "\nERROR: Add Mono button not visible in lbox" unless (@page.has_selector?('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => TRUE) || !@page.has_selector?('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => FALSE))
-  sleep 5
-#  100.times do
-#  execute_script("$('img#ctl00_contentBody_ctl02_ctl00_addMono').trigger('focus')")
-#  end
-  puts "\nSTILL ERROR!!!!: Add Mono button not visible in lbox" unless (@page.has_selector?('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => TRUE) || !@page.has_selector?('img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => FALSE))
-  @detailPage.confirm_add_monogram
+  # problem with focus within browser page before we click on the add monogram button, so use some jquery to focus on the button
+  2.times do
+    execute_script("$('img#ctl00_contentBody_ctl02_ctl00_addMono').trigger('focus')")
+    @detailPage.confirm_add_monogram
+  end
 end
 
 Then /^the Add Monogram lightbox closes$/ do
