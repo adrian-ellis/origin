@@ -4,7 +4,6 @@
 ALL_MG_FONTS = ['brush script', 'circle', 'clarendon', 'diamond', 'old english', 'roman block', 'sports script', 'upright script']
 ALL_MG_COLOURS = ['black', 'burgundy', 'purple', 'navy', 'royal blue', 'light blue', 'racing green', 'red', 'pink', 'grey', 'yellow', 'white']
 ALL_MG_POSITIONS = ['chest (left)', 'cuff centre', 'cuff above watch', 'cuff below link']
-#ALL_MG_POSITIONS_DE = {'chest (left)' => 'Brust (links)', 'cuff centre' => 'Manschette Mitte', 'cuff above watch' => 'Manschette über Uhr', 'cuff below link' => 'Manschette unter Knopfloch'}
 ALL_MG_POSITIONS_DE = {'chest (left)' => 'Brust (links)', 'cuff centre' => 'Manschette Mitte', 'cuff above watch' => 'Manschette uber Uhr', 'cuff below link' => 'Manschette unter Knopfloch'}
 
 ########################################################################################################################################################################

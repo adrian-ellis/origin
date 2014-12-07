@@ -7,12 +7,18 @@ require 'rspec/expectations'
 
 require 'rest_client'
 require 'jsonpath'
+require 'yaml'
+require 'psych'
+require 'cucumber_statistics'
+require 'cucumber_statistics/autoload'
 
 require 'sqlite3'
 require 'active_record'
 #require 'logger'
 #require 'database_cleaner'
 #require 'factory_girl'
+
+require_relative '../database/active_record_classes'
 
 BASE_INSTALL_DIR = 'C:/Ruby193/ctproject'
 
@@ -45,11 +51,13 @@ ENABLED_LOGGING           = TRUE
 # (eg. outputing the SKU's and names of shirts after sorting by price has been carried out on a product page)
 INDIVIDUAL_ITEM_LOGGING_ENABLED = FALSE
 
-# set flag for determining whether or not this is the first scenario to be run (from cucumber)
-ENV['FIRST_RUN'] = 'T'
 PWD = Dir.pwd
 
-require_relative '../database/active_record_classes'
+# initialise global variables needed
+$first_run = 'T'
+$make_delayed_save = 'F'
+$current_scenario_outline_name = ''
+$example_count = 1
 
 ##################################################################################################################
 ### Register a capybara browser driver eg. selenium (along with the browser type you want it to drive eg. chrome).
@@ -98,53 +106,76 @@ Before do |scenario|
   else
     Capybara.current_driver = :selenium_firefox
   end
-  puts "Running in '#{Capybara.current_driver}' browser"
 
   unless ENV['BROWSER'] == "none"
     @page = page
 		# clear cookies (by reseting the browser in current session)
-		#Capybara.current_session.driver.browser.manage.delete_all_cookies
-    Capybara.current_session.current_window.maximize if ENV['FIRST_RUN'] == 'T'
+		# Capybara.current_session.driver.browser.manage.delete_all_cookies
+    Capybara.current_session.current_window.maximize if $first_run == 'T'
+  end
+
+  if $make_delayed_save == 'T'
+    # embed the screenshot with label name based on example row.
+    label = "Screenshot for Example #{$example_data}"
+    embed("screenshots/#{$scenario_file_name}.png", 'image/png', label)
+    FileUtils.cp('results.html', "results/#{$scenario_file_name}.html")
+    $make_delayed_save = 'F'
   end
 
   # create 'logs' directory if needed. Then create a log file (whose name is based on the scenario and timestamp) in thia directory
   Dir.mkdir("logs") unless File.directory?("logs")
-	ENV['LOGFILE'] = %Q(logs/#{scenario_name(scenario)}.log)
-	File.new(ENV['LOGFILE'], 'w')
-
-  # Determine if the current scenario's website 'country' is 'GB'
-  ENV['CURRENT_COUNTRY'] = scenario_country(scenario)
+	$logfile = %Q(logs/#{scenario_name(scenario)}.log)
+	File.new($logfile, 'w')
 end
 
 After do |scenario|
-  # set flag to FALSE ('F') as the first scenario has now been run
-  ENV['FIRST_RUN'] = 'F'
+  $first_run = 'F'	# clear the 'first run' flag
 
-  record_results = TRUE
-  if scenario.failed? && record_results
-    # create directory to store screenshots if needed. Then store the screenshot (whose name is based on the scenario and timestamp) in the 'screenshots' directory
-    Dir.mkdir("screenshots") unless File.directory?("screenshots")
-    scenario_file_name = scenario_name(scenario)
-    page.save_screenshot("screenshots/#{scenario_file_name}.png")
+  # create 'results' directory if needed. Then copy the results file to thia directory
+  Dir.mkdir("results") unless File.directory?("results")
+  $scenario_file_name = scenario_name(scenario)
 
-    # determine whether scenario is a scenario outline, then embed the screenshot with label name based on scenario name or example row.
-    scenario_has_examples?(scenario) ? label = "Screenshot for Example: #{example(scenario)}" : label = "Scenario Screenshot"
-    embed("screenshots/#{scenario_file_name}.png", 'image/png', label)
-
-		# create 'results' directory if needed. Then copy the results file to thia directory
-    Dir.mkdir("results") unless File.directory?("results")
-    FileUtils.copy('results.html', "results/#{scenario_file_name}.html")
+  # create directory to store screenshots if needed. Then store the screenshot (whose name is based on the scenario and timestamp) in the 'screenshots' directory
+  if scenario.failed?
+  Dir.mkdir("screenshots") unless File.directory?("screenshots")
+    page.save_screenshot("screenshots/#{$scenario_file_name}.png")
   end
 
+  # determine whether the scenario is a scenario outline
+  if scenario_has_examples?(scenario)
+    # find the total no. of examples for the scenario outline
+    outline_components = scenario.scenario_outline.to_sexp
+    example_lines = find_example_rows_in_sexp(outline_components)
+    $no_of_example_lines = example_lines.last - example_lines.first
+
+    # increment or reset the counter depending on which is the current example line
+    if scenario.scenario_outline.name == $current_scenario_outline_name
+      $example_count += 1
+    else
+      $current_scenario_outline_name = scenario.scenario_outline.name
+      $example_count = 1
+    end
+
+    # if this is the last row in the examples table then delay the copying
+    # of the results file until the 'before' hook is activated again
+    $example_data = get_example_data(scenario)
+    $make_delayed_save = 'T' if ($example_count == $no_of_example_lines)
+  else
+    # this is a single scenario so embed the screenshot with a label based on the scenario name
+    label = "Scenario Screenshot"
+    embed("screenshots/#{$scenario_file_name}.png", 'image/png', label) if scenario.failed?
+    $no_of_example_lines = 0   # no example lines exist
+  end
+
+  # reset browser (should delete cookies)
   unless ENV['BROWSER'] == "none"
     Capybara.current_session.reset! if (Capybara.current_session != nil)
   end
 end
 
 at_exit do
-  # we need to close the browser after all scenarios have been run
-  puts "at exit\n"
-  unless ENV['BROWSER'] == "none"
-    Capybara.current_session.driver.browser.close if (Capybara.current_session != nil)
+  # copy the test results file to 'results' directory the last test was a scenario outline
+  if $example_count == $no_of_example_lines
+    FileUtils.cp('results.html', "results/#{$scenario_file_name}.html")
   end
 end

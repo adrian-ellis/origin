@@ -1,7 +1,7 @@
 module LogToFile
 	def log(text)
 		begin
-			file = File.open(ENV['LOGFILE'], "a")
+			file = File.open($logfile, "a")
 			file.write(text)
 		rescue IOError => e
 			#some error occur, dir not writable etc.
@@ -130,6 +130,16 @@ module CapybaraCustomSelectors
   end
 
 end
+
+module Cucumber
+  module Formatter
+    class GherkinFormatterAdapter
+    def self.hack
+    puts @current_example_rows
+    end
+    end
+  end
+end
 #-----------------------------------------------------------------------------------------------------------------------------------------------------
 ######################################################################################################################################################
 # MODULE CONTAINING Methods used by env.rb
@@ -140,9 +150,34 @@ module EnvMethods
     scenario.instance_of?(Cucumber::Ast::OutlineTable::ExampleRow)
   end
 
-  def example(scenario)
+  def get_example_data(scenario)
     scenario.name
   end
+
+  def find_example_rows_in_sexp(outline_components)
+    line_numbers = []
+    examples_component = ''
+
+    # find the examples component within the whole sexp 'outline_components'
+    outline_components.each do |component|
+      if component[0] == :examples
+        examples_component = component
+        break
+      end
+    end
+
+    # convert array to string
+    examples_string = examples_component.to_s
+
+    # extract all of the example's line numbers (within the scenario outline) and place them in line_numbers[]
+    while examples_string[/(row),\s(\d+)/] do
+      line_numbers << examples_string[/(row),\s(\d+)/, 2].to_i
+      examples_string.sub!(/row,\s\d+/,'')
+    end
+
+    return line_numbers
+  end
+
 
   # Construct a filename (used for naming test results files) based on the Scenario name and timestamp
   def scenario_name(scenario)

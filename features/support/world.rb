@@ -29,4 +29,18 @@ class CustomWorld
   def set_css(element,name,val)
     page.evaluate_script("$('#{element}').css('#{name}','#{val}')")
   end
+
+  ########### USEFUL FOR FINDING OUT WHICH METHODS RETURN ANYTHING USEFUL ###########
+  #  scenario_outline_public_methods = scenario.scenario_outline.public_methods
+  #  puts scenario_outline_public_methods
+  #  all_methods = scenario_outline_public_methods
+  #    all_methods.each do |meth|
+  #      begin
+  #        ret = eval(%Q(scenario.scenario_outline.#{meth}))
+  #        puts "\n\n#{meth} works OK. Output is ...\n#{ret}" if ret != nil
+  #      rescue Exception
+  #      end
+  #    end
+  ###################################################################################
+
 end
