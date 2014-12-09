@@ -9,6 +9,8 @@ require 'rest_client'
 require 'jsonpath'
 require 'yaml'
 require 'psych'
+require 'cucumber_statistics'
+require 'cucumber_statistics/autoload'
 
 require 'sqlite3'
 require 'active_record'
