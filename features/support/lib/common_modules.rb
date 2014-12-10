@@ -241,7 +241,7 @@ module Waiting
     time_secs = 0
     begin
       while !element_present
-        fail "\nERROR: Element cannot be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if time_secs > PAGE_ELEMENT_TIMEOUT_SECS
+        fail "\nERROR: Element cannot be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if (time_secs > PAGE_ELEMENT_TIMEOUT_SECS)
         element_present = yield
         break if element_present
         sleep 0.5
@@ -265,7 +265,7 @@ module Waiting
     time_secs = 0
     begin
       while element_present
-        fail "\nERROR: Element is still present even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if time_secs > PAGE_ELEMENT_TIMEOUT_SECS
+        fail "\nERROR: Element is still present even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if (time_secs > PAGE_ELEMENT_TIMEOUT_SECS)
         element_present = yield
         break if !element_present
         sleep 0.5
@@ -285,12 +285,65 @@ module Waiting
   end
 
   # Wait until the element (called in the block, from 'yield') appears on the page
+  def wait_until_has_hash_selector(selector_hash)
+    element_present = FALSE
+    time_secs = 0
+    selector_hash.select do |key, val|
+      begin
+        while !element_present
+          fail "\nERROR: Element cannot be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if (time_secs > PAGE_ELEMENT_TIMEOUT_SECS)
+          element_present = TRUE if @page.has_selector?(key, val)
+          sleep 0.5
+          time_secs += 0.5
+        end
+      rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
+        puts "Trapped Exception: #{e} : Retrying"
+        sleep 0.5
+        time_secs += 0.5
+        retry
+      rescue Selenium::WebDriver::Error::ObsoleteElementError => e
+        puts "Trapped Exception: #{e} : Retrying"
+        sleep 0.5
+        time_secs += 0.5
+        retry
+      end
+    end
+  end
+
+  # Wait until the element (called in the block, from 'yield') disappears from the page
+  def wait_until_hash_selector_not_visible(selector_hash)
+    element_present = TRUE
+    time_secs = 0
+    selector_hash.select do |key, val|
+      begin
+        while element_present
+          fail "\nERROR: Element can still be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if (time_secs > PAGE_ELEMENT_TIMEOUT_SECS)
+          element_present = FALSE if @page.has_selector?(key, val, :visible => FALSE)
+          #puts 'bollox................................' if @page.has_selector?(key, val, :visible => TRUE)
+          sleep 0.5
+          time_secs += 0.5
+        end
+      rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
+        puts "Trapped Exception: #{e} : Retrying"
+        sleep 0.5
+        time_secs += 0.5
+        retry
+      rescue Selenium::WebDriver::Error::ObsoleteElementError => e
+        puts "Trapped Exception: #{e} : Retrying"
+        sleep 0.5
+        time_secs += 0.5
+        retry
+      end
+    end
+  end
+
+  # Wait until the element (called in the block, from 'yield') appears on the page
   def wait_until_has_selector(selector_expr)
     element_present = FALSE
     time_secs = 0
     begin
       while !element_present
-        fail "\nERROR: Element cannot be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if time_secs > PAGE_ELEMENT_TIMEOUT_SECS
+        fail "\nERROR: Element cannot be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if (time_secs > PAGE_ELEMENT_TIMEOUT_SECS)
         break if @page.has_selector?(selector_expr)
         sleep 0.5
         time_secs += 0.5
@@ -314,7 +367,7 @@ module Waiting
     time_secs = 0
     begin
       while element_present
-        fail "\nERROR: Element can still be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if time_secs > PAGE_ELEMENT_TIMEOUT_SECS
+        fail "\nERROR: Element can still be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if (time_secs > PAGE_ELEMENT_TIMEOUT_SECS)
         break if !@page.has_selector?(selector_expr)
         sleep 0.5
         time_secs += 0.5

@@ -15,11 +15,15 @@ class FormalShirtsItemDetailPage
   # define page object elements on the formal shirts product page
   ####################################################################################
   #-----------------------------------------------------------------------------------
+  attr_reader :selector
+
   def initialize(page, country)
     @page = page
     @country = country
     @mtc_href_identifier   = 'TieCufflinkMatcher'
-		
+
+    @selector = { :mg_lightbox => { :div_id => 'fieldset#monogram' } }
+
 		#define a hash containing the names & 'id' locators for all the monogram colour radio buttons
 		@mg_colour_radio_buttons = {  'black' => 'mg_colour_black',
 		 																	  'burgundy' => 'mg_colour_burgundy',

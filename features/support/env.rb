@@ -1,6 +1,18 @@
 require 'selenium-webdriver'
 require 'capybara'
 require 'capybara/cucumber'
+require 'cucumber'
+require 'cucumber/runtime'
+require 'cucumber/ast/scenario'
+require 'cucumber/ast/scenario_outline'
+require 'cucumber/ast/outline_table'
+require 'cucumber/ast/table'
+#require 'cucumber/mappings'
+
+#require 'gherkin/formatter/escaping'
+#require 'cucumber/core/ast/describes_itself'
+require 'cucumber/formatter/pretty'
+
 require 'decimal'
 require 'fileutils'
 require 'rspec/expectations'
@@ -19,6 +31,11 @@ require 'active_record'
 #require 'factory_girl'
 
 require_relative '../database/active_record_classes'
+
+require_relative 'lib/common_modules'
+include Cucumber::Ast
+include EnvMethods
+
 
 BASE_INSTALL_DIR = 'C:/Ruby193/ctproject'
 
@@ -57,7 +74,29 @@ PWD = Dir.pwd
 $first_run = 'T'
 $make_delayed_save = 'F'
 $current_scenario_outline_name = ''
-$example_count = 1
+$example_counter = 1
+
+class OutlineTable
+  class ExampleRow
+    def to_sexp_lines
+      # need to find the examples component within the whole sexp 'outline_components'
+      self.scenario_outline.to_sexp.each do |component|
+        yield component
+      end
+    end
+  end
+end
+
+def get_no_of_examples(examples_string)
+  line_numbers = []
+
+  # extract all of the example's line numbers (within the scenario outline) and place them in line_numbers[]
+  while examples_string[/(row),\s(\d+)/] do
+    line_numbers << examples_string[/(row),\s(\d+)/, 2].to_i
+    examples_string.sub!(/row,\s\d+/,'')
+  end
+  return line_numbers.last - line_numbers.first
+end
 
 ##################################################################################################################
 ### Register a capybara browser driver eg. selenium (along with the browser type you want it to drive eg. chrome).
@@ -143,28 +182,38 @@ After do |scenario|
 
   # determine whether the scenario is a scenario outline
   if scenario_has_examples?(scenario)
+    ##############################################################
     # find the total no. of examples for the scenario outline
+=begin
     outline_components = scenario.scenario_outline.to_sexp
     example_lines = find_example_rows_in_sexp(outline_components)
-    $no_of_example_lines = example_lines.last - example_lines.first
+    ##############################################################
+=end
+
+    # find the total no. of examples for the scenario outline
+    scenario.to_sexp_lines do |line|
+      # find the example line, then use regex to find the text 'line' and the assoc line number
+      next if line[0] != :examples
+      $no_of_examples = get_no_of_examples(line.to_s)
+    end
 
     # increment or reset the counter depending on which is the current example line
     if scenario.scenario_outline.name == $current_scenario_outline_name
-      $example_count += 1
+      $example_counter += 1
     else
       $current_scenario_outline_name = scenario.scenario_outline.name
-      $example_count = 1
+      $example_counter = 1
     end
 
     # if this is the last row in the examples table then delay the copying
     # of the results file until the 'before' hook is activated again
     $example_data = get_example_data(scenario)
-    $make_delayed_save = 'T' if ($example_count == $no_of_example_lines)
+    $make_delayed_save = 'T' if ($example_counter == $no_of_examples)
   else
     # this is a single scenario so embed the screenshot with a label based on the scenario name
     label = "Scenario Screenshot"
     embed("screenshots/#{$scenario_file_name}.png", 'image/png', label) if scenario.failed?
-    $no_of_example_lines = 0   # no example lines exist
+    $no_of_examples = 0   # no example lines exist
   end
 
   # reset browser (should delete cookies)
@@ -175,7 +224,7 @@ end
 
 at_exit do
   # copy the test results file to 'results' directory the last test was a scenario outline
-  if $example_count == $no_of_example_lines
+  if $example_counter == $no_of_examples
     FileUtils.cp('results.html', "results/#{$scenario_file_name}.html")
   end
 end
