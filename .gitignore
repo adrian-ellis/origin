@@ -13,3 +13,4 @@ logs
 junit_output
 json_output.json
 source_code.rb
+Rakefile_multi_tasks
