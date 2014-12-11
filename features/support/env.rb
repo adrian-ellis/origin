@@ -58,7 +58,7 @@ BASKET_LINK_URL           = BASE_URL + BASKET_IDENTIFIER
 
 # Gives the ability to change timeouts for loading pages and page elements
 PAGE_TIMEOUT_SECS         = 5    # default timeout value for loading a page
-PAGE_ELEMENT_TIMEOUT_SECS = 5    # default timeout value for a given page element
+PAGE_ELEMENT_TIMEOUT_SECS = 10   # default timeout value for a given page element
 
 # Enable logging to stdout. This gives information about what the test is actually doing
 # (eg. giving contents of the basket before and after removing an item)
@@ -74,7 +74,7 @@ PWD = Dir.pwd
 $first_run = 'T'
 $make_delayed_save = 'F'
 $current_scenario_outline_name = ''
-$example_counter = 1
+$example_counter = 0
 
 class OutlineTable
   class ExampleRow
@@ -153,6 +153,7 @@ Before do |scenario|
     Capybara.current_session.current_window.maximize if $first_run == 'T'
   end
 
+  # copy the results file for the last example row of the previous scenario outline
   if $make_delayed_save == 'T'
     # embed the screenshot with label name based on example row.
     label = "Screenshot for Example #{$example_data}"
@@ -161,35 +162,8 @@ Before do |scenario|
     $make_delayed_save = 'F'
   end
 
-  # create 'logs' directory if needed. Then create a log file (whose name is based on the scenario and timestamp) in thia directory
-  Dir.mkdir("logs") unless File.directory?("logs")
-	$logfile = %Q(logs/#{scenario_name(scenario)}.log)
-	File.new($logfile, 'w')
-end
-
-After do |scenario|
-  $first_run = 'F'	# clear the 'first run' flag
-
-  # create 'results' directory if needed. Then copy the results file to thia directory
-  Dir.mkdir("results") unless File.directory?("results")
-  $scenario_file_name = scenario_name(scenario)
-
-  # create directory to store screenshots if needed. Then store the screenshot (whose name is based on the scenario and timestamp) in the 'screenshots' directory
-  if scenario.failed?
-  Dir.mkdir("screenshots") unless File.directory?("screenshots")
-    page.save_screenshot("screenshots/#{$scenario_file_name}.png")
-  end
-
   # determine whether the scenario is a scenario outline
   if scenario_has_examples?(scenario)
-    ##############################################################
-    # find the total no. of examples for the scenario outline
-=begin
-    outline_components = scenario.scenario_outline.to_sexp
-    example_lines = find_example_rows_in_sexp(outline_components)
-    ##############################################################
-=end
-
     # find the total no. of examples for the scenario outline
     scenario.to_sexp_lines do |line|
       # find the example line, then use regex to find the text 'line' and the assoc line number
@@ -209,7 +183,26 @@ After do |scenario|
     # of the results file until the 'before' hook is activated again
     $example_data = get_example_data(scenario)
     $make_delayed_save = 'T' if ($example_counter == $no_of_examples)
-  else
+  end
+
+  # create 'logs' directory if needed. Then create a log file (whose name is based on the scenario and timestamp) in thia directory
+  Dir.mkdir("logs") unless File.directory?("logs")
+	$logfile = %Q(logs/#{scenario_name(scenario)}.log)
+	File.new($logfile, 'w')
+end
+
+After do |scenario|
+  $first_run = 'F'	# clear the 'first run' flag
+
+  # create 'results' directory if needed. Then copy the results file to thia directory
+  Dir.mkdir("results") unless File.directory?("results")
+  $scenario_file_name = scenario_name(scenario)
+
+  # create directory to store screenshots if needed. Then store the screenshot (whose name is based on the scenario and timestamp) in the 'screenshots' directory
+  if !scenario_has_examples?(scenario) && scenario.failed?
+    Dir.mkdir("screenshots") unless File.directory?("screenshots")
+    page.save_screenshot("screenshots/#{$scenario_file_name}.png")
+
     # this is a single scenario so embed the screenshot with a label based on the scenario name
     label = "Scenario Screenshot"
     embed("screenshots/#{$scenario_file_name}.png", 'image/png', label) if scenario.failed?

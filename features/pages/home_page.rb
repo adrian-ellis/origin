@@ -4,6 +4,7 @@ class HomePage
   include CapybaraCustomSelectors
   include CommonPageMethods
   include Waiting
+  include LogToFile
   include TeliumTags
 
   #######################################################################

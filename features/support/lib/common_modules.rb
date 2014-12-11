@@ -238,48 +238,44 @@ module Waiting
   # and then try to locate it again (ie. with a new reference to the element). Fail if not found within time limit PAGE_ELEMENT_TIMEOUT_SECS.
   def wait_until_element_present
     element_present = FALSE
-    time_secs = 0
+    time_before = Time.now
     begin
       while !element_present
-        fail "\nERROR: Element cannot be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if (time_secs > PAGE_ELEMENT_TIMEOUT_SECS)
-        element_present = yield
-        break if element_present
-        sleep 0.5
-        time_secs += 0.5
+        fail "\nERROR: Element cannot be found even after #{Time.now - time_before} secs\n" if (Time.now - time_before) > PAGE_ELEMENT_TIMEOUT_SECS
+        ret_obj = yield
+        element_present = TRUE if (ret_obj != nil)
+        log("\n\nExample #{$example_counter}: WAIT_UNTIL_ELEMENT_PRESENT: elapsed_time of CAPYBARA call = #{Time.now - time_before} secs\n") if ENABLED_LOGGING
+        sleep 0.5 if !element_present
       end
     rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
       puts "Trapped Exception: #{e} : Retrying"
       sleep 0.5
-      time_secs += 0.5
       retry
     rescue Selenium::WebDriver::Error::ObsoleteElementError => e
       puts "Trapped Exception: #{e} : Retrying"
       sleep 0.5
-      time_secs += 0.5
       retry
     end
   end
 
   def wait_until_element_not_present
     element_present = TRUE
-    time_secs = 0
+    time_before = Time.now
     begin
       while element_present
-        fail "\nERROR: Element is still present even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if (time_secs > PAGE_ELEMENT_TIMEOUT_SECS)
-        element_present = yield
-        break if !element_present
-        sleep 0.5
-        time_secs += 0.5
+        fail "\nERROR: Element is still present even after #{Time.now - time_before} secs\n" if (Time.now - time_before) > PAGE_ELEMENT_TIMEOUT_SECS
+        ret_obj = yield
+        element_present = FALSE if (ret_obj != nil)
+        log("\n\nExample #{$example_counter}: WAIT_UNTIL_ELEMENT_NOT_PRESENT: elapsed_time of CAPYBARA call = #{Time.now - time_before} secs\n") if ENABLED_LOGGING
+        sleep 0.5 if element_present
       end
     rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
       puts "Trapped Exception: #{e} : Retrying"
       sleep 0.5
-      time_secs += 0.5
       retry
     rescue Selenium::WebDriver::Error::ObsoleteElementError => e
       puts "Trapped Exception: #{e} : Retrying"
       sleep 0.5
-      time_secs += 0.5
       retry
     end
   end
@@ -287,24 +283,21 @@ module Waiting
   # Wait until the element (called in the block, from 'yield') appears on the page
   def wait_until_has_hash_selector(selector_hash)
     element_present = FALSE
-    time_secs = 0
+    time_before = Time.now
     selector_hash.select do |key, val|
       begin
         while !element_present
-          fail "\nERROR: Element cannot be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if (time_secs > PAGE_ELEMENT_TIMEOUT_SECS)
+          fail "\nERROR: Element cannot be found even after #{Time.now - time_before} secs\n" if (Time.now - time_before) > PAGE_ELEMENT_TIMEOUT_SECS
           element_present = TRUE if @page.has_selector?(key, val)
-          sleep 0.5
-          time_secs += 0.5
+          sleep 0.5 if !element_present
         end
       rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
         puts "Trapped Exception: #{e} : Retrying"
         sleep 0.5
-        time_secs += 0.5
         retry
       rescue Selenium::WebDriver::Error::ObsoleteElementError => e
         puts "Trapped Exception: #{e} : Retrying"
         sleep 0.5
-        time_secs += 0.5
         retry
       end
     end
@@ -313,25 +306,21 @@ module Waiting
   # Wait until the element (called in the block, from 'yield') disappears from the page
   def wait_until_hash_selector_not_visible(selector_hash)
     element_present = TRUE
-    time_secs = 0
+    time_before = Time.now
     selector_hash.select do |key, val|
       begin
         while element_present
-          fail "\nERROR: Element can still be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if (time_secs > PAGE_ELEMENT_TIMEOUT_SECS)
+          fail "\nERROR: Element can still be found even after #{Time.now - time_before} secs\n" if (Time.now - time_before) > PAGE_ELEMENT_TIMEOUT_SECS
           element_present = FALSE if @page.has_selector?(key, val, :visible => FALSE)
-          #puts 'bollox................................' if @page.has_selector?(key, val, :visible => TRUE)
-          sleep 0.5
-          time_secs += 0.5
+          sleep 0.5 if element_present
         end
       rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
         puts "Trapped Exception: #{e} : Retrying"
         sleep 0.5
-        time_secs += 0.5
         retry
       rescue Selenium::WebDriver::Error::ObsoleteElementError => e
         puts "Trapped Exception: #{e} : Retrying"
         sleep 0.5
-        time_secs += 0.5
         retry
       end
     end
@@ -340,23 +329,43 @@ module Waiting
   # Wait until the element (called in the block, from 'yield') appears on the page
   def wait_until_has_selector(selector_expr)
     element_present = FALSE
-    time_secs = 0
+    time_before = Time.now
     begin
       while !element_present
-        fail "\nERROR: Element cannot be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if (time_secs > PAGE_ELEMENT_TIMEOUT_SECS)
-        break if @page.has_selector?(selector_expr)
-        sleep 0.5
-        time_secs += 0.5
+        fail "\nERROR: Element cannot be found even after #{Time.now - time_before} secs\n" if (Time.now - time_before) > PAGE_ELEMENT_TIMEOUT_SECS
+        element_present = TRUE if @page.has_selector?(selector_expr)
+        log("\n\nExample #{$example_counter}: WAIT_UNTIL_HAS_SELECTOR(#{selector_expr}): elapsed_time of CAPYBARA 'has_selector' call = #{Time.now - time_before} secs\n") if ENABLED_LOGGING
+        sleep 0.5 if !element_present
       end
     rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
       puts "Trapped Exception: #{e} : Retrying"
       sleep 0.5
-      time_secs += 0.5
       retry
     rescue Selenium::WebDriver::Error::ObsoleteElementError => e
       puts "Trapped Exception: #{e} : Retrying"
       sleep 0.5
-      time_secs += 0.5
+      retry
+    end
+  end
+
+
+  def wait_until_selector_not_visible(selector_expr)
+    element_present = FALSE
+    time_before = Time.now
+    begin
+      while !element_present
+        fail "\nERROR: Element cannot be found even after #{Time.now - time_before} secs\n" if (Time.now - time_before) > PAGE_ELEMENT_TIMEOUT_SECS
+        element_present = TRUE if @page.has_selector?(selector_expr, :visible => FALSE)
+        log("\n\nExample #{$example_counter}: WAIT_UNTIL_SELECTOR_NOT_VISIBLE(#{selector_expr}): elapsed_time of CAPYBARA 'has_selector visible => FALSE' call = #{Time.now - time_before} secs\n") if ENABLED_LOGGING
+        sleep 0.5 if !element_present
+      end
+    rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
+      puts "Trapped Exception: #{e} : Retrying"
+      sleep 0.5
+      retry
+    rescue Selenium::WebDriver::Error::ObsoleteElementError => e
+      puts "Trapped Exception: #{e} : Retrying"
+      sleep 0.5
       retry
     end
   end
@@ -364,23 +373,21 @@ module Waiting
   # Wait until the element (called in the block, from 'yield') disappears from the page
   def wait_until_has_no_selector(selector_expr)
     element_present = TRUE
-    time_secs = 0
+    time_before = Time.now
     begin
       while element_present
-        fail "\nERROR: Element can still be found even after #{PAGE_ELEMENT_TIMEOUT_SECS} secs\n" if (time_secs > PAGE_ELEMENT_TIMEOUT_SECS)
-        break if !@page.has_selector?(selector_expr)
-        sleep 0.5
-        time_secs += 0.5
+        fail "\nERROR: Element can still be found even after #{Time.now - time_before} secs\n" if (Time.now - time_before) > PAGE_ELEMENT_TIMEOUT_SECS
+        element_present = FALSE if !@page.has_selector?(selector_expr)
+        log("\n\nExample #{$example_counter}: WAIT_UNTIL_HAS_NO_SELECTOR(#{selector_expr}): elapsed_time of CAPYBARA 'has_selector' call = #{Time.now - time_before} secs\n") if ENABLED_LOGGING
+        sleep 0.5 if element_present
       end
     rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
       puts "Trapped Exception: #{e} : Retrying"
       sleep 0.5
-      time_secs += 0.5
       retry
     rescue Selenium::WebDriver::Error::ObsoleteElementError => e
       puts "Trapped Exception: #{e} : Retrying"
       sleep 0.5
-      time_secs += 0.5
       retry
     end
   end

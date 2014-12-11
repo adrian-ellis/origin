@@ -57,16 +57,13 @@ And /^I click on the Add Monogram button$/ do
   # problem with focus within browser page before we click on the add monogram button, so use some jquery to focus on the button
   evaluate_script("$('fieldset#monogram img#ctl00_contentBody_ctl02_ctl00_addMono').trigger('focus')")
   @detailPage.confirm_add_monogram
-
-  while @page.has_selector?('fieldset#monogram', :visible => TRUE)
-    sleep 0.5
-  end
+  wait_until_selector_not_visible('fieldset#monogram')
 end
 
 Then /^the Add Monogram lightbox closes$/ do
 #  wait_until_has_no_selector('fieldset#monogram')
 #  wait_until_hash_selector_not_visible(@detailPage.selector[:mg_lightbox])
-  expect(@detailPage.monogram_lightbox_displayed?).to be(FALSE)
+  expect(@detailPage.monogram_lightbox_not_displayed?).to be(TRUE)
 end
 
 And /^the product item detail page is still displayed$/ do
@@ -80,7 +77,6 @@ end
 And /^the monogram summary details for "(.*?)", "(.*?)", "(.*?)" and "(.*?)" are displayed next to the Add Monogram checkbox on the product item detail page$/ do |font, colour, position, initials|
   expect(@detailPage.monogram_description_displayed?).to be(TRUE)
   expect(@detailPage.monogram_description.empty?).to be(FALSE)
-  #puts("MONOGRAM DESCRIPTION = '#{@detailPage.monogram_description}'") if ENABLED_LOGGING
   log("MONOGRAM DESCRIPTION = '#{@detailPage.monogram_description}'") if ENABLED_LOGGING
 
   # The monogram text description eg. "You selected: brush script,black,\"AQA\",chest"

@@ -421,6 +421,10 @@ class FormalShirtsItemDetailPage
     @page.has_selector?('fieldset#monogram', :visible => TRUE)
   end
 
+  def monogram_lightbox_not_displayed?
+    @page.has_selector?('fieldset#monogram', :visible => FALSE)
+  end
+
   def monogram_lightbox
     @page.find('fieldset#monogram', :visible => TRUE)
   end
