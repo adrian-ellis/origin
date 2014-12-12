@@ -435,11 +435,13 @@ class FormalShirtsItemDetailPage
   end
 
   def confirm_add_monogram
+    evaluate_script("$('fieldset#monogram img#ctl00_contentBody_ctl02_ctl00_addMono').trigger('focus')")
     @page.find('fieldset#monogram img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => FALSE).click
   end
 
   # initials text box
   def mg_initials=(text)
+    evaluate_script("$('ctl00_contentBody_ctl02_ctl00_mg_initials').trigger('focus')")
     @page.fill_in('ctl00_contentBody_ctl02_ctl00_mg_initials', :with => text)
   end
 
@@ -452,6 +454,7 @@ class FormalShirtsItemDetailPage
   end
 
   def mg_font=(font)
+    evaluate_script("$('@mg_font_radio_buttons[font]').trigger('focus')")
 		@page.choose(@mg_font_radio_buttons[font], :visible => FALSE)
   end
 
@@ -464,6 +467,7 @@ class FormalShirtsItemDetailPage
   end
 
   def mg_colour=(colour)
+    evaluate_script("$('@mg_colour_radio_buttons[colour]').trigger('focus')")
 		@page.choose(@mg_colour_radio_buttons[colour], :visible => FALSE)
   end
 
@@ -476,6 +480,7 @@ class FormalShirtsItemDetailPage
   end
 
   def mg_position=(position)
+    evaluate_script("$('@mg_position_radio_buttons[position]').trigger('focus')")
 		@page.choose(@mg_position_radio_buttons[position], :visible => FALSE)
   end
 

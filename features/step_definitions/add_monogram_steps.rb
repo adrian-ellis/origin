@@ -10,7 +10,7 @@ When /^I select Add Monogram on the product item detail page$/ do
 end
 
 Then /^the Add monogram lightbox appears$/ do
-  wait_until_has_selector('fieldset#monogram')
+#  wait_until_has_selector('fieldset#monogram')
   #wait_until_has_hash_selector(@detailPage.selector[:mg_lightbox])
   expect(@detailPage.monogram_lightbox_displayed?).to be(TRUE)
 end
@@ -57,7 +57,7 @@ And /^I click on the Add Monogram button$/ do
   # problem with focus within browser page before we click on the add monogram button, so use some jquery to focus on the button
   evaluate_script("$('fieldset#monogram img#ctl00_contentBody_ctl02_ctl00_addMono').trigger('focus')")
   @detailPage.confirm_add_monogram
-  wait_until_selector_not_visible('fieldset#monogram')
+#  wait_until_selector_not_visible('fieldset#monogram')
 end
 
 Then /^the Add Monogram lightbox closes$/ do
