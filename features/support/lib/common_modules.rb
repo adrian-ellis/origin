@@ -128,18 +128,8 @@ module CapybaraCustomSelectors
   Capybara.add_selector(:title) do
     xpath { |title| XPath.descendant[XPath.attr(:title) == title.to_s] }
   end
-
 end
 
-module Cucumber
-  module Formatter
-    class GherkinFormatterAdapter
-    def self.hack
-    puts @current_example_rows
-    end
-    end
-  end
-end
 #-----------------------------------------------------------------------------------------------------------------------------------------------------
 ######################################################################################################################################################
 # MODULE CONTAINING Methods used by env.rb
@@ -154,6 +144,7 @@ module EnvMethods
     scenario.name
   end
 
+  # this is now a legacy method; because it's better to separate the 2 main loops in this method
   def find_example_rows_in_sexp(outline_components)
     line_numbers = []
     examples_component = ''
@@ -236,7 +227,7 @@ module Waiting
   # Verify that the specified element (called in the block, from 'yield') exists on the page (ie. within the DOM).
   # If the element can no longer be found within the because the DOM has changed (again), then catch the exception thrown,
   # and then try to locate it again (ie. with a new reference to the element). Fail if not found within time limit PAGE_ELEMENT_TIMEOUT_SECS.
-  def wait_until_element_present
+  def wait_until_element_present(&block)
     element_present = FALSE
     time_before = Time.now
     begin
@@ -258,7 +249,7 @@ module Waiting
     end
   end
 
-  def wait_until_element_not_present
+  def wait_until_element_not_present(&block)
     element_present = TRUE
     time_before = Time.now
     begin
@@ -408,7 +399,7 @@ module Waiting
   #########################################################################################################
   # EXPERIMENTS WITH THESE METHODS THAT USE BLOCKS to retry locating a given element after a timeout occurs
   #########################################################################################################
-  def trap_error
+  def trap_error(&block)
     time_secs = 0
     begin
       fail "\nERROR: #{e}\n" if time_secs > 5.0

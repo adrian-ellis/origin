@@ -3,7 +3,7 @@ Feature: Add a monogram to the shirt displayed on the product detail page
   As a customer
   I would like to add a monogram to any suitable (formal or evening) shirt displayed on the product page
   So that I can customise the clothing item that I want to buy to suit my own needs.
-  @ignore-not
+  @ignore
   Scenario Outline: verify the Add monogram lightbox appears for a suitable (formal or evening) shirt
     Given I am using the "<country>" website
     And I am on the product item detail page for a formal shirt "<product_item_code>"
@@ -19,7 +19,7 @@ Feature: Add a monogram to the shirt displayed on the product detail page
     |   GB    |     SN061WHT      |
     |   DE    |     RG049SKY      |
 
-  @ignore-not
+  @ignore
   Scenario Outline: Add a monogram to a suitable (formal or evening) shirt displayed on the product page
     Given I am using the "<country>" website
     And I am on the product item detail page for a formal shirt "<product_item_code>"
@@ -40,3 +40,7 @@ Feature: Add a monogram to the shirt displayed on the product detail page
     |   DE    |      SE059WHT     |  circle        | navy          | cuff below link    |    RPM     |
     |   US    |      SV040SKY     | sports script  | racing green  | cuff above watch   |    xGTx    |
     |   AU    |      SN444WHT     |  circle        | royal blue    | chest (left)       |    ADE     |
+
+  @mg_onestep
+  Scenario: Add monogram to a shirt in one step
+  Given I add a monogram to product "SN112SKY" in country "US"

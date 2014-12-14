@@ -55,7 +55,7 @@ Feature: Verify all the available shirt options can be selected
     | country |  product_type   |   product_item_code  |  size_option_1    |  size_option_1_value  |   size_option_2   |
     |   GB    |  formal shirt   |      fn017wht        |   collar size     |        15             |   sleeve length   |
 
-  @fml_shirts_size_options @allow-rescue @javascript
+  @fml_shirts_size_options
   Scenario Outline: all formal shirt sizing options can be selected
     Given I am using the "<country>" website
     And I am on the product item detail page for a "<product_type>" with item code "<product_item_code>"

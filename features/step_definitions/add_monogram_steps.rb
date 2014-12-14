@@ -1,3 +1,8 @@
+Given /^I add a monogram to product "([^\"]*)" in country "([^\"]*)"$/ do |product_item_code, country|
+  add_monogram(product_item_code, country)
+  puts "\n\nINFO: Finished adding monogram #{product_item_code} for #{country}\n"
+end
+
 Given /^I am on the product item detail page for a formal shirt "(.*?)"$/ do |product_item_code|
   # Load the formal shirt detail page for the item code provided in the scenario data table.
   @detailPage = @homePage.search_for_formal_shirt(product_item_code)
@@ -57,10 +62,10 @@ And /^I click on the Add Monogram button$/ do
   # problem with focus within browser page before we click on the add monogram button, so use some jquery to focus on the button
   evaluate_script("$('fieldset#monogram img#ctl00_contentBody_ctl02_ctl00_addMono').trigger('focus')")
   @detailPage.confirm_add_monogram
-#  wait_until_selector_not_visible('fieldset#monogram')
 end
 
 Then /^the Add Monogram lightbox closes$/ do
+#  wait_until_selector_not_visible('fieldset#monogram')
 #  wait_until_has_no_selector('fieldset#monogram')
 #  wait_until_hash_selector_not_visible(@detailPage.selector[:mg_lightbox])
   expect(@detailPage.monogram_lightbox_not_displayed?).to be(TRUE)
@@ -79,26 +84,15 @@ And /^the monogram summary details for "(.*?)", "(.*?)", "(.*?)" and "(.*?)" are
   expect(@detailPage.monogram_description.empty?).to be(FALSE)
   log("MONOGRAM DESCRIPTION = '#{@detailPage.monogram_description}'") if ENABLED_LOGGING
 
-  # The monogram text description eg. "You selected: brush script,black,\"AQA\",chest"
-  # is delimited by commas so we SPLIT it into 4 parts, and then compensate for the \"<initials>\" component
-  if @country != 'DE'
-    monogram_desc = @detailPage.monogram_description.sub(/You selected:\s*/,'').split ','
-  else
-    monogram_desc = @detailPage.monogram_description.sub(/Ihre Einstellung:\s*/,'').split ','
-  end
-  font_displayed = monogram_desc[0]
-  colour_displayed = monogram_desc[1].lstrip.rstrip
-  #colour_displayed = monogram_desc[1]
-  initials_displayed = monogram_desc[2].gsub(%q("),'').lstrip.rstrip
-  position_displayed = monogram_desc[3].lstrip.rstrip
+  mg_selection = @detailPage.get_monogram_selections(@detailPage.monogram_description)
 
   # now compare the monogram text description with the values from the scenario data table
-  expect(font.downcase).to eq(font_displayed.downcase)
-  expect(colour.downcase).to eq(colour_displayed.downcase)
-  expect(initials.downcase).to eq(initials_displayed.downcase)
+  expect(font.downcase).to eq(mg_selection[:font].downcase)
+  expect(colour.downcase).to eq(mg_selection[:color].downcase)
+  expect(initials.downcase).to eq(mg_selection[:initials].downcase)
   if (@country != 'DE')
-    expect(position.downcase).to eq(position_displayed.downcase)
+    expect(position.downcase).to eq(mg_selection[:position].downcase)
   else
-    expect(ALL_MG_POSITIONS_DE[position].downcase).to eq(position_displayed.sub(/.ber/,'uber').downcase)
+    expect(ALL_MG_POSITIONS_DE[position].downcase).to eq(mg_selection[:position].sub(/.ber/,'uber').downcase)
   end
 end

@@ -127,7 +127,6 @@ else
   end
 end
 
-
 World do
   CustomWorld.new
 end

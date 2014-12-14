@@ -22,9 +22,12 @@ class FormalShirtsItemDetailPage
     @country = country
     @mtc_href_identifier   = 'TieCufflinkMatcher'
 
-    @selector = { :mg_lightbox => { :div_id => 'fieldset#monogram' } }
+    @selector = { :mg_lightbox => 'div#fieldset#monogram',
+                  :mg_description => 'div#monogram_desc',
+                  :mg_section => 'div#ctl00_contentBody_ctl02_addMngm'
+    }
 
-		#define a hash containing the names & 'id' locators for all the monogram colour radio buttons
+    #define a hash containing the names & 'id' locators for all the monogram colour radio buttons
 		@mg_colour_radio_buttons = {  'black' => 'mg_colour_black',
 		 																	  'burgundy' => 'mg_colour_burgundy',
                                         'purple' => 'mg_colour_purple',
@@ -361,8 +364,9 @@ class FormalShirtsItemDetailPage
   # monogram related methods
   ####################################################################################
 
-  def add_monogram_section
-    @page.find(:div_id, "ctl00_contentBody_ctl02_addMngm")
+  def add_mg_section
+    # use the '@selector' hash that stores just the simple 'css' selectors used by capybara
+    @page.find(@selector[:mg_section])
   end
 
   # verify if the 'add monogram' checkbox is displayed?
@@ -377,15 +381,34 @@ class FormalShirtsItemDetailPage
 
   # verify if the 'add monogram' checkbox is checked, by inspecting the span element that contains the checkbox and its value (ie. "checked" or "").
   def add_monogram_checked?
-    add_monogram_section.has_selector?(:span_class, "checked") ? TRUE : FALSE
+    add_mg_section.has_selector?(:span_class, 'checked', :visible => FALSE) ? TRUE : FALSE    ### FALSE???
   end
 
   def monogram_description_displayed?
-    add_monogram_section.has_selector?(:div_id, "monogram_desc")
+    # use the '@selector' hash that stores just the simple 'css' selectors used by capybara
+    add_mg_section.has_selector?(@selector[:mg_description])
   end
 
   def monogram_description
-    add_monogram_section.find(:div_id, "monogram_desc").text
+    # use the '@selector' hash that stores just the simple 'css' selectors used by capybara
+    add_mg_section.find(@selector[:mg_description]).text
+  end
+
+  def get_monogram_selections(monogram_description)
+    # The monogram text description eg. "You selected: brush script,black,\"AQA\",chest"
+    # is delimited by commas so we SPLIT it into 4 parts, and then compensate for the \"<initials>\" component
+    if @country != 'DE'
+      monogram_desc = monogram_description.sub(/You selected:\s*/,'').split ','
+    else
+      monogram_desc = monogram_description.sub(/Ihre Einstellung:\s*/,'').split ','
+    end
+    font_displayed = monogram_desc[0]
+    colour_displayed = monogram_desc[1].lstrip.rstrip
+    initials_displayed = monogram_desc[2].gsub(%q("),'').lstrip.rstrip
+    position_displayed = monogram_desc[3].lstrip.rstrip
+
+    # return the (on-screen) displayed values for font, color, initials and position in a hash
+    return { font: font_displayed, color: colour_displayed, initials: initials_displayed, position: position_displayed }
   end
 
   #-----------------------------------------------------------------------------------
@@ -437,6 +460,7 @@ class FormalShirtsItemDetailPage
   def confirm_add_monogram
     evaluate_script("$('fieldset#monogram img#ctl00_contentBody_ctl02_ctl00_addMono').trigger('focus')")
     @page.find('fieldset#monogram img#ctl00_contentBody_ctl02_ctl00_addMono', :visible => FALSE).click
+    evaluate_script("$('fieldset#monogram img#ctl00_contentBody_ctl02_ctl00_addMono').trigger('blur')")
   end
 
   # initials text box
@@ -480,7 +504,8 @@ class FormalShirtsItemDetailPage
   end
 
   def mg_position=(position)
-    evaluate_script("$('@mg_position_radio_buttons[position]').trigger('focus')")
+    ret = evaluate_script("$('@mg_position_radio_buttons[position]').trigger('focus')") # STILL FOCUS NOT ENABLING THIS RADIO BUTTON
+    puts "fuck up!!" if ret == nil
 		@page.choose(@mg_position_radio_buttons[position], :visible => FALSE)
   end
 
